@@ -1,1 +1,7 @@
-#include "Structs.h"
+#include <iostream>
+#include "UI.h"
+
+int main(int argc, char** argv) {
+    menuController();
+    return 0;
+}
