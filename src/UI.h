@@ -16,7 +16,7 @@ void gotoxy(int x, int y);
 // Ham thay doi mau sac cho van ban (to mau chu va mau nen)
 void textcolor(int color);
 
-// Ham an hoac hien con tro chuot (cuc nhap nhay tren man hinh)
+// Ham an hoac hien con tro chuot 
 void ShowConsoleCursor(bool showFlag);
 
 // Ham ve khung vien hinh chu nhat bao quanh menu

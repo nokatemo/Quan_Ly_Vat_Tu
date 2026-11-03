@@ -91,7 +91,7 @@ void printStaticText() {
     
     // In Header o giua vung chong tren cung (Y=1)
     gotoxy(OFFSET_X + 13, OFFSET_Y + 1); 
-    cout << "HOC VIEN CONG NGHE BUU CHINH VIEN THONG CO SO THANH PHO HO CHI MINH";
+    cout << "HOC VIEN CONG NGHE BUU CHINH VIEN THONG PHAN HIEU THANH PHO HO CHI MINH";
 
     // In thong tin cua 3 thanh vien o cac toa do 25, 26, 27 
     // Tat ca deu nho hon 28 nen hoan toan khong bao gio bi de len vien nua
