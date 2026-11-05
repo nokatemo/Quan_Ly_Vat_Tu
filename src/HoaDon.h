@@ -3,6 +3,8 @@
 
 #include "struct.h"
 #include "Validate.h"
+#include "VatTu.h"
+#include "NhanVien.h"
 
 // =========================================================
 // 1. CAC HAM BO TRO XU LY DANH SACH LIEN KET CHI TIET HOA DON

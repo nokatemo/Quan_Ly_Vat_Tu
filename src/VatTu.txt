@@ -1,0 +1,4 @@
+3
+VT01 Xi Mang Holcim|Bao|150
+VT02 Gach Ong 4 Lo|Vien|500
+VT03 Cat Xay Dung|Xe|15

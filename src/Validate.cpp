@@ -1,5 +1,5 @@
 #include "Validate.h"
-#include <iostream> 
+#include <iostream>
 #include <string>
 #include <cctype>    
 #include <conio.h>   
@@ -58,19 +58,14 @@ int sosanhngay(int d1, int m1, int y1, int d2, int m2, int y2) {
 
 bool conso(const string& ten) {
     for (char c : ten) {
-        if (isdigit(c)) return true;
+        if (isdigit(static_cast<unsigned char>(c))) return true;
     }
     return false;
 }
 
 
 // =========================================================
-// PHAN 2: CAC HAM NHAP LIEU CHUAN HOA TRUC TIEP (LIVE)
-// 
-// Bang ma ASCII can nho cho _getch():
-// - 13     : Phim Enter
-// - 8      : Phim Backspace (Xoa)
-// - 0, 224 : Phim dieu huong (Mui ten, F1-F12...)
+// PHAN 2: CAC HAM NHAP LIEU CHUAN HOA TRUC TIEP KHI GO (LIVE)
 // =========================================================
 
 string NhapMaID(size_t maxlen) {
@@ -78,7 +73,7 @@ string NhapMaID(size_t maxlen) {
     while (true) {
         int c = _getch(); 
         
-        // 1. Bo qua phim dieu huong, _getch() lan 2 de nuot phim ranh
+        // 1. Bo qua phim dieu huong (Mui ten, F1-F12...)
         if (c == 0 || c == 224) { _getch(); continue; } 
         
         // 2. Xu ly Enter
@@ -90,22 +85,22 @@ string NhapMaID(size_t maxlen) {
             continue;
         }
         
-        // 3. Xu ly xoa (Backspace)
+        // 3. Xu ly phim Backspace (Xoa)
         if (c == 8) { 
             if (!result.empty()) {
-                result.pop_back(); // Xoa trong bien
-                cout << "\b \b" << flush; // Xoa tren man hinh hien thi
+                result.pop_back(); // Xoa ky tu cuoi trong chuoi
+                cout << "\b \b" << flush; // Xoa ky tu tren man hinh console
             }
             continue;
         }
         
-        // 4. Chi cho phep nhap chu cai va so (Chan ky tu dac biet, khoang trang)
-        if (!isalnum(c)) continue;
+        // 4. Chi cho phep nhap chu cai va chu so (Chan khoang trang, ky tu dac biet)
+        if (!isalnum(static_cast<unsigned char>(c))) continue;
         
-        // 5. Kiem tra kich thuoc toi da
+        // 5. Kiem tra do dai toi da
         if (result.size() >= maxlen) continue;
         
-        // 6. Chuyen chu thuong thanh chu In Hoa
+        // 6. Chuyen chu thuong thanh chu IN HOA ngay khi go va hien thi ra console
         char upper = static_cast<char>(toupper(static_cast<unsigned char>(c)));
         result += upper;
         cout << upper << flush;	
@@ -119,8 +114,9 @@ string nhapChuoiChuanHoa(size_t maxlen) {
         int c = _getch();
         if (c == 0 || c == 224) { _getch(); continue; } 
         
+        // 1. Xu ly Enter
         if (c == 13) { 
-            // Neu user lo go 1 khoang trang o cuoi roi an Enter -> Tu dong xoa
+            // Neu nguoi dung lo go khoang trang o cuoi -> Tu dong g?t bo truoc khi xong
             if (!result.empty() && result.back() == ' ') {
                 result.pop_back(); 
                 cout << "\b \b" << flush;
@@ -132,6 +128,7 @@ string nhapChuoiChuanHoa(size_t maxlen) {
             continue;
         }
         
+        // 2. Xu ly Backspace
         if (c == 8) { 
             if (!result.empty()) {
                 result.pop_back();
@@ -140,22 +137,22 @@ string nhapChuoiChuanHoa(size_t maxlen) {
             continue;
         }
         
-        // 4. CHI CHO PHEP CHU CAI VA KHOANG TRANG (a-z, A-Z, space)
-        if (isalpha(c) || c == ' ') {
+        // 3. Chi cho phep chu cai va khoang trang
+        if (isalpha(static_cast<unsigned char>(c)) || c == ' ') {
             if (result.size() >= maxlen) continue;
             
             if (c == ' ') {
-                // Chan khoang trang o dau hoac 2 khoang trang dinh vao nhau
+                // Chan khoang trang o dau va 2 khoang trang lien tiep
                 if (result.empty() || result.back() == ' ') continue;
                 result += ' ';
                 cout << ' ' << flush;
             } else {
                 char kytu;
-                // Chu cai dau tien cua moi tu se tu dong viet hoa
+                // Chu cai dau tien cua tu -> Viet hoa
                 if (result.empty() || result.back() == ' ') {
                     kytu = static_cast<char>(toupper(static_cast<unsigned char>(c)));
                 } else {
-                    // Nhung chu cai con lai tu dong viet thuong
+                    // Cac chu cai con lai -> Viet thuong
                     kytu = static_cast<char>(tolower(static_cast<unsigned char>(c)));
                 }
                 result += kytu;
@@ -192,8 +189,8 @@ string nhapTenVatTuChuanHoa(size_t maxlen) {
             continue;
         }
         
-        // 4. CHO PHEP CHU CAI, SO VA KHOANG TRANG (VD: "Gach Ong 4 Lo")
-        if (isalnum(c) || c == ' ') {
+        // Cho phep chu cai, so va khoang trang (VD: "Xi Mang PC 40")
+        if (isalnum(static_cast<unsigned char>(c)) || c == ' ') {
             if (result.size() >= maxlen) continue;
             
             if (c == ' ') {
@@ -202,8 +199,8 @@ string nhapTenVatTuChuanHoa(size_t maxlen) {
                 cout << ' ' << flush;
             } else {
                 char kytu = static_cast<char>(c);
-                // Giong nhapChuoiChuanHoa, chi format chu cai, khong the format so
-                if (isalpha(c)) {
+                // Chi in hoa/thuong ky tu chu cai, giu nguyen ky tu so
+                if (isalpha(static_cast<unsigned char>(c))) {
                     if (result.empty() || result.back() == ' ') {
                         kytu = static_cast<char>(toupper(static_cast<unsigned char>(c)));
                     } else {
@@ -235,7 +232,7 @@ int nhapsonguyen() {
         if (c == 13) {
             if (s.empty()) continue;
             try {
-                int n = stoi(s); // Ep chuoi sang nguyen
+                int n = stoi(s); // Ep chuoi sang so nguyen
                 cout << "\n";
                 return n;
             } catch (const out_of_range&) {
@@ -245,7 +242,7 @@ int nhapsonguyen() {
             continue;
         }
         
-        // CHI NHAN SO 0-9. Chan luon dau am (-) de buoc nguoi dung nhap so nguyen DUONG
+        // Chi nhan ky tu so 0-9 (Chan dau '-' va ky tu chu)
         if (c >= '0' && c <= '9') {
             char kytu = static_cast<char>(c);
             s += kytu;
@@ -257,7 +254,7 @@ int nhapsonguyen() {
 double nhapsothuc() {
     string s;
     while (true) {
-        char c = _getch();
+        int c = _getch();
         if (c == 0 || c == 224) { _getch(); continue; }
         
         if (c == 8) {
@@ -271,7 +268,7 @@ double nhapsothuc() {
         if (c == 13) {
             if (s.empty()) continue;
             try {
-                double n = stod(s); // Ep chuoi sang thuc
+                double n = stod(s); // Ep chuoi sang so thuc
                 cout << "\n";
                 return n;
             } catch (const out_of_range&) {
@@ -281,7 +278,7 @@ double nhapsothuc() {
             continue;
         }
         
-        // CHI NHAN SO 0-9 VA 1 DAU CHAM(.). Chan nhap so am va nhieu dau cham cung luc
+        // Chi nhan ky tu so 0-9 va 1 dau cham (.). Chan dau '-' va nhieu dau cham
         if ((c >= '0' && c <= '9') || (c == '.' && s.find('.') == string::npos)) {
             char kytu = static_cast<char>(c);
             s += kytu;

@@ -6,29 +6,29 @@
 #include <conio.h> 
 #include <string>
 
-// ==========================================================
-// KHAI BAO CAC HAM CHUC NANG GIAO DIEN (UI)
-// ==========================================================
+#include "struct.h"
+#include "NhanVien.h"
+#include "HoaDon.h"
 
-// Ham di chuyen con tro chuot tren man hinh console den toa do (x, y)
+// Di chuyen con tro console den toa do (x, y)
 void gotoxy(int x, int y);
 
-// Ham thay doi mau sac cho van ban (to mau chu va mau nen)
+// Thay doi mau chu va mau nen hien thi
 void textcolor(int color);
 
-// Ham an hoac hien con tro chuot 
+// An hoac hien con tro chuot nhap nhay
 void ShowConsoleCursor(bool showFlag);
 
-// Ham ve khung vien hinh chu nhat bao quanh menu
+// Ve khung vien bao quanh menu
 void drawFrame();
 
-// Ham in cac thong tin co dinh (Ten truong, ten Nguyen Khoa, ma sinh vien...)
+// In thong tin co dinh (tieu de truong, thong tin sinh vien)
 void printStaticText();
 
-// Ham in danh sach 10 chuc nang va to mau muc dang duoc chon
+// In danh sach 10 muc menu va highlight muc dang chon
 void printMenuItems(int selectedIndex);
 
-// Ham xu ly vong lap chinh, nhan phim mui ten va dieu huong switch-case
-void menuController();
+// Quan ly vong lap menu chinh va dieu huong chuc nang
+void menuController(DanhSachNhanVien &dsNV, TreeVatTu &root);
 
 #endif
