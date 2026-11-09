@@ -1,23 +1,32 @@
 #include <iostream>
+#include <windows.h>
 #include "struct.h"
-#include "UI.h"
+#include "VatTu.h"
+#include "NhanVien.h"
 #include "HoaDon.h"
+#include "UI.h"
 
 using namespace std;
 
 int main() {
-    // 1. Khoi tao danh sach nhan vien va cay vat tu
-    DanhSachNhanVien dsNV;
+    
+
+    // 2. Khai bao va khoi tao cac cau truc du lieu chinh cua he thong
+    TreeVatTu root = NULL;             // Cay Nhi Phan Tim Kiem quan ly Vat Tu
+    DanhSachNhanVien dsNV;            // Mang con tro quan ly Nhan Vien
     dsNV.soLuong = 0;
-    TreeVatTu root = NULL;
 
-    // 2. Doc du lieu tu file len RAM khi bat chuong trinh
-     DocFileVatTu(root);       // File VatTu cua Tien
-     DocFileNhanVien(dsNV);    // File NhanVien cua Khoa
-    DocFileHoaDon(dsNV);         // File HoaDon cua Khoa
+    // 3. Doc toan bo du lieu tu cac File text vao bo nho RAM khi khoi dong
+    DocFileVatTu(root);
+    DocFileNhanVien(dsNV);
+    DocFileHoaDon(dsNV);               // Nap danh sach hoa don vao tung nhan vien tuong ung
 
-    // 3. Khoi chay giao dien menu chinh
+    // 4. Kich hoat giao dien va luong dieu khien Menu chinh
     menuController(dsNV, root);
+
+    // 5. Giai phong bo nho truoc khi thoat (neu can)
+    GiaiPhongDSNhanVien(dsNV);
+    // GiaiPhongCayVatTu(root);
 
     return 0;
 }
