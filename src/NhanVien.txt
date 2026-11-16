@@ -1,0 +1,8 @@
+NV001|Tran|Nguyen|Nam
+NV002|Bui Vu Nguyen|Khoa|Nam
+NV003|Vo Nguyen Hoang|Trong|Nam
+NV004|Nguyen Chi|Thoai|Nam
+NV005|Bui Minh|Tien|Nam
+NV006|Phuc|Hau|Nam
+NV007|Hoang|Phu|Nam
+NV008|Luong|Tam|Nam

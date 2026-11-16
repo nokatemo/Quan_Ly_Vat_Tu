@@ -1,4 +1,6 @@
 #include "UI.h"
+#include "NhanVien.h"
+#include "ThongKe.h"
 #include <conio.h> 
 
 using namespace std;
@@ -37,6 +39,7 @@ string menuItems[NUM_ITEMS] = {
 
 // Ham 1: Di chuyen con tro chuot den toa do (x, y) tren man hinh
 void gotoxy(int x, int y) {
+    cout << flush;
     COORD coord;
     coord.X = x;
     coord.Y = y;
@@ -56,6 +59,183 @@ void ShowConsoleCursor(bool showFlag) {
     GetConsoleCursorInfo(out, &cursorInfo);
     cursorInfo.bVisible = showFlag; 
     SetConsoleCursorInfo(out, &cursorInfo);
+}
+
+namespace {
+    const int KHUNG_NV_X = 10;
+    const int KHUNG_NV_Y = 1;
+    const int KHUNG_NV_RONG = 100;
+    const int KHUNG_NV_CAO = 31;
+    const int O_NHAP_NV_X = 75;
+
+    void XoaDong(int dong) {
+        cout << flush;
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        if (GetConsoleScreenBufferInfo(out, &info)) {
+            COORD viTri = {KHUNG_NV_X + 1, static_cast<short>(dong)};
+            DWORD daXoa = 0;
+            FillConsoleOutputCharacterA(out, ' ', KHUNG_NV_RONG - 1, viTri, &daXoa);
+        } else {
+            gotoxy(KHUNG_NV_X + 1, dong);
+            cout << string(KHUNG_NV_RONG - 1, ' ') << flush;
+        }
+    }
+
+    string CanCot(const string& text, int rong) {
+        string noiDung = text.substr(0, rong - 2);
+        return " " + noiDung + string(rong - 2 - noiDung.size(), ' ') + " ";
+    }
+
+    string DongBang(const string cot[5]) {
+        const int rong[] = {6, 10, 30, 25, 15};
+        string dong = "|";
+        for (int i = 0; i < 5; i++) dong += CanCot(cot[i], rong[i]) + "|";
+        return dong;
+    }
+
+    string VienBang() {
+        const int rong[] = {6, 10, 30, 25, 15};
+        string vien = "+";
+        for (int i = 0; i < 5; i++) vien += string(rong[i], '-') + "+";
+        return vien;
+    }
+}
+
+void HienSoLuongNhanVien(int soLuong) {
+    XoaDong(6);
+    gotoxy(KHUNG_NV_X + 3, 6);
+    textcolor(10);
+    cout << "Tong so: " << soLuong << " / 500 nhan vien" << flush;
+    textcolor(11);
+}
+
+void HienThongBaoDayNhanVien() {
+    XoaDong(23);
+    gotoxy(KHUNG_NV_X + 3, 23);
+    textcolor(12);
+    cout << "Danh sach da du 500 nhan vien.";
+    XoaDong(30);
+    gotoxy(KHUNG_NV_X + 3, 30);
+    textcolor(10);
+    cout << "[Nhan Esc hoac Enter de quay ve menu chinh]" << flush;
+    textcolor(11);
+    ShowConsoleCursor(false);
+}
+
+void VeKhungNhanVien(const string& tieuDe) {
+    ShowConsoleCursor(false);
+    textcolor(14);
+    gotoxy(KHUNG_NV_X, KHUNG_NV_Y);
+    cout << string(KHUNG_NV_RONG + 1, char(178));
+    for (int y = KHUNG_NV_Y + 1; y < KHUNG_NV_Y + KHUNG_NV_CAO; y++) {
+        gotoxy(KHUNG_NV_X, y);
+        cout << char(178);
+        textcolor(11);
+        cout << string(KHUNG_NV_RONG - 1, ' ');
+        textcolor(14);
+        cout << char(178);
+    }
+    gotoxy(KHUNG_NV_X, KHUNG_NV_Y + KHUNG_NV_CAO);
+    cout << string(KHUNG_NV_RONG + 1, char(178));
+    gotoxy(KHUNG_NV_X + 2, 2);
+    cout << string(KHUNG_NV_RONG - 3, '=');
+    gotoxy(KHUNG_NV_X + 2, 4);
+    cout << string(KHUNG_NV_RONG - 3, '=');
+    string ten = tieuDe.substr(0, KHUNG_NV_RONG - 8);
+    gotoxy(KHUNG_NV_X + (KHUNG_NV_RONG - static_cast<int>(ten.size())) / 2, 3);
+    textcolor(11);
+    cout << ten << flush;
+}
+
+void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro,
+                     const string& thongBao) {
+    const string nhan[] = {"1. Ma nhan vien (toi da 5 ky tu)", "2. Ho va ten dem", "3. Ten", "4. Phai (Nam / Nu)"};
+    const string giaTri[] = {nv.MANV, nv.ho, nv.ten, nv.phai};
+    const int dong[] = {8, 11, 14, 17};
+    for (int i = 0; i < 4; i++) {
+        XoaDong(dong[i]);
+        gotoxy(KHUNG_NV_X + 3, dong[i]);
+        textcolor(oDangChon == i ? 14 : 11);
+        cout << (oDangChon == i ? "> " : "  ") << nhan[i] << flush;
+        gotoxy(O_NHAP_NV_X, dong[i]);
+        textcolor(oDangChon == i ? 15 : 11);
+        string noiDung = giaTri[i].substr(0, 20);
+        cout << "[ " << noiDung << string(20 - noiDung.size(), ' ') << " ]" << flush;
+    }
+    XoaDong(20);
+    gotoxy(43, 20);
+    textcolor(oDangChon == 4 ? 224 : 14);
+    cout << "[ LUU NHAN VIEN - ENTER / F2 ]" << flush;
+    textcolor(11);
+    XoaDong(23);
+    if (!thongBao.empty()) {
+        gotoxy(KHUNG_NV_X + 3, 23);
+        textcolor(12);
+        cout << thongBao.substr(0, KHUNG_NV_RONG - 6) << flush;
+    }
+    textcolor(11);
+    XoaDong(26);
+    gotoxy(KHUNG_NV_X + 3, 26);
+    cout << "Len/Xuong/Tab: chuyen o | Trai/Phai: sua | Enter: tiep/Luu | F2: luu";
+    XoaDong(30);
+    gotoxy(KHUNG_NV_X + 3, 30);
+    textcolor(10);
+    cout << "[Nhan Esc de huy thong tin dang nhap va quay ve menu chinh]" << flush;
+    textcolor(11);
+    ShowConsoleCursor(oDangChon < 4);
+    if (oDangChon < 4) {
+        gotoxy(O_NHAP_NV_X + 2 + viTriConTro, dong[oDangChon]);
+    }
+}
+
+void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
+    VeKhungNhanVien("DANH SACH NHAN VIEN");
+    gotoxy(KHUNG_NV_X + 3, 6);
+    textcolor(10);
+    if (soLuong == 0) cout << "Chua co nhan vien. Hay them nhan vien tu menu.";
+    else cout << "Tong so: " << soLuong << " nhan vien | Sap xep theo ten, ho";
+
+    const string tieuDe[] = {"STT", "MA NV", "HO VA TEN DEM", "TEN", "PHAI"};
+    const int bangX = KHUNG_NV_X + 4;
+    const string vien = VienBang();
+    textcolor(14);
+    gotoxy(bangX, 7);
+    cout << vien;
+    textcolor(11);
+    gotoxy(bangX, 8);
+    cout << DongBang(tieuDe);
+    textcolor(14);
+    gotoxy(bangX, 9);
+    cout << vien;
+    for (int i = 0; i < SO_NHAN_VIEN_MOI_TRANG; i++) {
+        int viTri = trang * SO_NHAN_VIEN_MOI_TRANG + i;
+        string cot[5];
+        if (viTri < soLuong) {
+            const NhanVien& nv = *ds[viTri];
+            cot[0] = to_string(viTri + 1);
+            cot[1] = nv.MANV;
+            cot[2] = nv.ho;
+            cot[3] = nv.ten;
+            cot[4] = nv.phai;
+        }
+        gotoxy(bangX, 10 + i);
+        textcolor(11);
+        cout << DongBang(cot);
+    }
+    textcolor(14);
+    gotoxy(bangX, 25);
+    cout << vien;
+    int soTrang = soLuong == 0 ? 1 : (soLuong + SO_NHAN_VIEN_MOI_TRANG - 1) / SO_NHAN_VIEN_MOI_TRANG;
+    string phanTrang = "Trang " + to_string(trang + 1) + " / " + to_string(soTrang);
+    gotoxy(KHUNG_NV_X + (KHUNG_NV_RONG - static_cast<int>(phanTrang.size())) / 2, 27);
+    textcolor(11);
+    cout << phanTrang;
+    gotoxy(KHUNG_NV_X + 3, 30);
+    textcolor(10);
+    cout << "[Trai/Phai, PgUp/PgDn: chuyen trang | Esc hoac Enter: ve menu]" << flush;
+    textcolor(11);
+    ShowConsoleCursor(false);
 }
 
 
@@ -137,7 +317,17 @@ void printMenuItems(int selectedIndex) {
 
 // Ham 7: Quan ly vong lap chinh va doc tin hieu tu ban phim
 void menuController() {
+	DanhSachNhanVien ds;
     system("mode con cols=120 lines=35"); // Setup khung nhin mac dinh cho console
+    if (!DocFileNhanVien(ds)) {
+        system("cls");
+        ShowConsoleCursor(true);
+        textcolor(12);
+        cout << "Khong doc duoc NhanVien.txt. Kiem tra dinh dang va quyen truy cap.\n"
+             << "Nhan phim bat ky de thoat; file hien tai se khong bi ghi de." << flush;
+        _getch();
+        return;
+    }
     
     ShowConsoleCursor(false); // Giau con tro chuot di
     system("cls");            // Xoa sach man hinh 
@@ -152,10 +342,10 @@ void menuController() {
     while (isRunning) {
         printMenuItems(selectedIndex); // Cap nhat mau menu lien tuc
 
-        char key = _getch(); // Cho bam 1 phim bat ky
+        int key = _getch(); // Cho bam 1 phim bat ky
         
         // Bat su kien khi bam mui ten len/xuong
-        if (key == -32 || key == 224) { 
+        if (key == 0 || key == 224) { 
             key = _getch(); // Doc ma thu 2 de xac dinh huong
             
             if (key == 72) { // Mui ten Len
@@ -170,6 +360,7 @@ void menuController() {
         else if (key == 13) { 
             system("cls");           
             ShowConsoleCursor(true); // Hien lai con tro de cho nhap lieu
+            bool quayVeMenuNgay = false;
             
             // DAY CHINH LA NOI BO CODE CHUC NANG DO AN VAO 
             switch (selectedIndex) {
@@ -180,8 +371,12 @@ void menuController() {
                     // Code Danh sach vat tu
                     break;
                 case 2:
+                    ThemNhanVien(ds);
+                    quayVeMenuNgay = true;
                     break;
                 case 3:
+                	InDanhSachNhanVien(ds);
+                    quayVeMenuNgay = true;
                     break;
                 case 4:
                     break;
@@ -192,6 +387,7 @@ void menuController() {
                 case 7:
                     break;
                 case 8:
+                    ThongKeDoanhThuTheoThang(ds);
                     break;
                 case 9: // Chon chuc nang 0. Thoat
                     cout << "Chuong trinh ket thuc!\n";
@@ -201,8 +397,10 @@ void menuController() {
             
             // Chay xong code chuc nang, tam dung man hinh de xem
             if (isRunning) {
-                cout << "\nNhan phim bat ky de quay lai menu...";
-                _getch(); 
+                if (!quayVeMenuNgay) {
+                    cout << "\nNhan phim bat ky de quay lai menu...";
+                    _getch();
+                }
                 
                 // Khoi phuc lai giao dien bang menu
                 ShowConsoleCursor(false); 

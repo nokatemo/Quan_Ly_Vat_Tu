@@ -19,6 +19,16 @@ void textcolor(int color);
 // Ham an hoac hien con tro chuot 
 void ShowConsoleCursor(bool showFlag);
 
+// Hien du cac o nhap va danh dau o dang duoc chon (0-3), hoac nut Luu (4).
+struct NhanVien;
+const int SO_NHAN_VIEN_MOI_TRANG = 15;
+void VeKhungNhanVien(const std::string& tieuDe);
+void HienSoLuongNhanVien(int soLuong);
+void HienThongBaoDayNhanVien();
+void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro,
+                     const std::string& thongBao = "");
+void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang);
+
 // Ham ve khung vien hinh chu nhat bao quanh menu
 void drawFrame();
 
