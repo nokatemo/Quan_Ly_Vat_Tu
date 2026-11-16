@@ -21,11 +21,14 @@ void ShowConsoleCursor(bool showFlag);
 
 // Hien du cac o nhap va danh dau o dang duoc chon (0-3), hoac nut Luu (4).
 struct NhanVien;
+struct DanhSachNhanVien;
 const int SO_NHAN_VIEN_MOI_TRANG = 15;
+const int SO_NHAN_VIEN_TREN_FORM = 7;
 void VeKhungNhanVien(const std::string& tieuDe);
 void HienSoLuongNhanVien(int soLuong);
 void HienThongBaoDayNhanVien();
-void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro,
+void HienFormNhanVien(const NhanVien& nv, const DanhSachNhanVien& ds, int trang,
+                     int oDangChon, int viTriConTro,
                      const std::string& thongBao = "");
 void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang);
 

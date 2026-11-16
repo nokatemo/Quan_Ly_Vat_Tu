@@ -6,3 +6,5 @@ NV005|Bui Minh|Tien|Nam
 NV006|Phuc|Hau|Nam
 NV007|Hoang|Phu|Nam
 NV008|Luong|Tam|Nam
+NV009|Huu|Hoa|Nam
+NV010|Luong|Tam|Nam

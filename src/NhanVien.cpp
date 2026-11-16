@@ -91,6 +91,7 @@ bool NhapMotNhanVien(DanhSachNhanVien& ds, const string& tenFile) {
     const size_t gioiHan[] = {5, 20, 10, 3};
     int oDangChon = 0;
     size_t viTri = 0;
+    int trang = 0;
     string thongBao;
 
     auto chuyenO = [&](int oMoi) {
@@ -103,16 +104,20 @@ bool NhapMotNhanVien(DanhSachNhanVien& ds, const string& tenFile) {
     };
 
     while (true) {
-        HienFormNhanVien(nv, oDangChon, static_cast<int>(viTri), thongBao);
+        HienFormNhanVien(nv, ds, trang, oDangChon, static_cast<int>(viTri), thongBao);
         int c = _getch();
         if (c == 27) return false;
         bool luu = false;
 
         if (c == 0 || c == 224) {
             int phim = _getch();
+            int soTrang = ds.soLuong == 0 ? 1 :
+                (ds.soLuong + SO_NHAN_VIEN_TREN_FORM - 1) / SO_NHAN_VIEN_TREN_FORM;
             if (phim == 72) chuyenO((oDangChon + 4) % 5);
             else if (phim == 80) chuyenO((oDangChon + 1) % 5);
             else if (phim == 60) luu = true; // F2
+            else if (phim == 73 && trang > 0) trang--; // Page Up
+            else if (phim == 81 && trang < soTrang - 1) trang++; // Page Down
             else if (oDangChon < 4) {
                 string& giaTri = *oNhap[oDangChon];
                 if (phim == 75 && viTri > 0) viTri--;
@@ -300,16 +305,16 @@ void InDanhSachNhanVien(const DanhSachNhanVien& ds) {
     }
 
     for (int i = 1; i < ds.soLuong; i++) {
-        const NhanVien* dangxet = thutu[i];
+        const NhanVien* dangXet = thutu[i];
         int j = i;
         while (j > 0 &&
-               (thutu[j-1]->ten > dangxet->ten ||
-                (thutu[j-1]->ten == dangxet->ten &&
-                 thutu[j-1]->ho > dangxet->ho))) {
-            thutu[j] = thutu[j-1];
+               (thutu[j - 1]->ten > dangXet->ten ||
+                (thutu[j - 1]->ten == dangXet->ten &&
+                 thutu[j - 1]->ho > dangXet->ho))) {
+            thutu[j] = thutu[j - 1];
             j--;
         }
-        thutu[j] = dangxet;
+        thutu[j] = dangXet;
     }
 
     int trang = 0;
