@@ -1,352 +1,294 @@
-#include "Validate.h"
-#include<iostream>
-#include<string>
 #include "NhanVien.h"
+#include "Validate.h"
 #include "UI.h"
-#include <cctype>
+#include <iostream>
+#include <string>
 #include <fstream>
-#include <sstream>
-#include <cstdio>
-
-
 
 using namespace std;
 
-int TimKiemNhanVien(const DanhSachNhanVien& ds, const string& maNV){
- int Left = 0;
- int Right = ds.soLuong - 1;
- 
- while (Left <= Right){
- 	int Mid = Left + ((Right - Left ) / 2);
- 	
- 	if (ds.ds[Mid]->MANV == maNV){
- 		return Mid;
-	 }
-	if (maNV < ds.ds[Mid]->MANV) {
-		Right = Mid - 1;
-	}
-	else {
-		Left = Mid + 1;
-	}
- }
- return -1;
+// ==========================================================
+// 1. HAM TIM KIEM NHI PHAN (BINARY SEARCH) THEO MA NHAN VIEN
+// Mang ds.ds[] luon duoc sap xep tang dan theo MANV
+// ==========================================================
+int TimKiemNhanVien(const DanhSachNhanVien& ds, const string& maNV) {
+    int Left = 0;                // Chi so dau mang
+    int Right = ds.soLuong - 1;  // Chi so cuoi mang
+
+    while (Left <= Right) {
+        int Mid = (Left + Right) / 2; // Vi tri o giua
+
+        if (ds.ds[Mid]->MANV == maNV) {
+            return Mid; // Tim thay tai vi tri Mid
+        }
+        if (maNV < ds.ds[Mid]->MANV) {
+            Right = Mid - 1; // Tim o nua ben trai
+        } else {
+            Left = Mid + 1;  // Tim o nua ben phai
+        }
+    }
+    return -1; // Khong tim thay
 }
 
-namespace {
-    // Chi doi hoa/thuong, giu nguyen do dai de con tro khong bi nhay khi dang sua.
-    void VietHoaDauTu(string& chuoi) {
-        bool dauTu = true;
-        for (char& kyTu : chuoi) {
-            if (kyTu == ' ') {
-                dauTu = true;
-            } else {
-                unsigned char c = static_cast<unsigned char>(kyTu);
-                kyTu = static_cast<char>(dauTu ? toupper(c) : tolower(c));
-                dauTu = false;
-            }
-        }
+// ==========================================================
+// 2. HAM CHEN NHAN VIEN VAO MANG THEO THU TU TANG DAN MA NV
+// ==========================================================
+int ChenNhanVienTheoMa(DanhSachNhanVien& ds, NhanVien* nvMoi) {
+    int viTriChen = ds.soLuong; // Mac dinh chen o cuoi mang
+
+    // Doi cac nhan vien co MANV lon hon sang phai 1 o de nhuong cho
+    while (viTriChen > 0 && ds.ds[viTriChen - 1]->MANV > nvMoi->MANV) {
+        ds.ds[viTriChen] = ds.ds[viTriChen - 1];
+        viTriChen--;
     }
 
-    string ChuanHoaThongTinNhanVien(const string& chuoi) {
-        string ketQua;
-        for (char c : chuoi) {
-            if (c == ' ') {
-                if (!ketQua.empty() && ketQua.back() != ' ') ketQua += ' ';
-            } else {
-                ketQua += c;
-            }
-        }
-        if (!ketQua.empty() && ketQua.back() == ' ') ketQua.pop_back();
-        VietHoaDauTu(ketQua);
-        return ketQua;
-    }
-
-    bool ThongTinNhanVienHopLe(const NhanVien& nv) {
-        if (nv.MANV.empty() || nv.MANV.size() > 5 || chuoirong(nv.ho) || nv.ho.size() > 20 ||
-            chuoirong(nv.ten) || nv.ten.size() > 10 || (nv.phai != "Nam" && nv.phai != "Nu")) return false;
-        for (unsigned char c : nv.MANV) if (!isalnum(c) || islower(c)) return false;
-        for (unsigned char c : nv.ho) if (!isalpha(c) && c != ' ') return false;
-        for (unsigned char c : nv.ten) if (!isalpha(c) && c != ' ') return false;
-        return true;
-    }
-
-    int ChenNhanVienTheoMa(DanhSachNhanVien& ds, NhanVien* nv) {
-        int i = ds.soLuong;
-        while (i > 0 && ds.ds[i - 1]->MANV > nv->MANV) {
-            ds.ds[i] = ds.ds[i - 1];
-            i--;
-        }
-        ds.ds[i] = nv;
-        ds.soLuong++;
-        return i;
-    }
-
-bool NhapMotNhanVien(DanhSachNhanVien& ds, const string& tenFile) {
-    if (ds.soLuong >= 500) {
-        return false;
-    }
-
-    NhanVien nv = {"", "", "", "", NULL};
-    string* oNhap[] = {&nv.MANV, &nv.ho, &nv.ten, &nv.phai};
-    const size_t gioiHan[] = {5, 20, 10, 3};
-    int oDangChon = 0;
-    size_t viTri = 0;
-    int trang = 0;
-    string thongBao;
-
-    auto chuyenO = [&](int oMoi) {
-        if (oDangChon > 0 && oDangChon < 4) {
-            *oNhap[oDangChon] = ChuanHoaThongTinNhanVien(*oNhap[oDangChon]);
-        }
-        oDangChon = oMoi;
-        viTri = oMoi < 4 ? oNhap[oMoi]->size() : 0;
-        thongBao.clear();
-    };
-
-    while (true) {
-        HienFormNhanVien(nv, ds, trang, oDangChon, static_cast<int>(viTri), thongBao);
-        int c = _getch();
-        if (c == 27) return false;
-        bool luu = false;
-
-        if (c == 0 || c == 224) {
-            int phim = _getch();
-            int soTrang = ds.soLuong == 0 ? 1 :
-                (ds.soLuong + SO_NHAN_VIEN_TREN_FORM - 1) / SO_NHAN_VIEN_TREN_FORM;
-            if (phim == 72) chuyenO((oDangChon + 4) % 5);
-            else if (phim == 80) chuyenO((oDangChon + 1) % 5);
-            else if (phim == 60) luu = true; // F2
-            else if (phim == 73 && trang > 0) trang--; // Page Up
-            else if (phim == 81 && trang < soTrang - 1) trang++; // Page Down
-            else if (oDangChon < 4) {
-                string& giaTri = *oNhap[oDangChon];
-                if (phim == 75 && viTri > 0) viTri--;
-                else if (phim == 77 && viTri < giaTri.size()) viTri++;
-                else if (phim == 71) viTri = 0;
-                else if (phim == 79) viTri = giaTri.size();
-                else if (phim == 83 && viTri < giaTri.size()) {
-                    giaTri.erase(viTri, 1);
-                    if (oDangChon > 0) VietHoaDauTu(giaTri);
-                    thongBao.clear();
-                }
-            }
-            if (!luu) continue;
-        } else if (c == 13 && oDangChon == 4) {
-            luu = true;
-        } else if (c == 13 || c == 9) {
-            chuyenO((oDangChon + 1) % 5);
-            continue;
-        }
-
-        if (luu) {
-            nv.ho = ChuanHoaThongTinNhanVien(nv.ho);
-            nv.ten = ChuanHoaThongTinNhanVien(nv.ten);
-            nv.phai = ChuanHoaThongTinNhanVien(nv.phai);
-            int oLoi = -1;
-            if (chuoirong(nv.MANV)) {
-                oLoi = 0;
-                thongBao = "Ma nhan vien khong duoc de trong.";
-            } else if (TimKiemNhanVien(ds, nv.MANV) != -1) {
-                oLoi = 0;
-                thongBao = "Ma da ton tai. Vui long nhap ma khac.";
-            } else if (chuoirong(nv.ho)) {
-                oLoi = 1;
-                thongBao = "Ho va ten dem khong duoc de trong.";
-            } else if (chuoirong(nv.ten)) {
-                oLoi = 2;
-                thongBao = "Ten khong duoc de trong.";
-            } else if (nv.phai != "Nam" && nv.phai != "Nu") {
-                oLoi = 3;
-                thongBao = "Phai chi nhan Nam hoac Nu.";
-            }
-            if (oLoi == -1) {
-                NhanVien* moi = new NhanVien(nv);
-                int viTriMoi = ChenNhanVienTheoMa(ds, moi);
-                if (GhiFileNhanVien(ds, tenFile)) return true;
-
-                // Ghi that bai thi giu lai form de thu lai, khong bao da luu.
-                for (int i = viTriMoi; i < ds.soLuong - 1; i++) ds.ds[i] = ds.ds[i + 1];
-                ds.soLuong--;
-                ds.ds[ds.soLuong] = nullptr;
-                delete moi;
-                thongBao = "Khong ghi duoc NhanVien.txt. Nhan F2 de thu lai, Esc de huy.";
-                viTri = oDangChon < 4 ? oNhap[oDangChon]->size() : 0;
-                continue;
-            }
-            oDangChon = oLoi;
-            viTri = oNhap[oLoi]->size();
-            continue;
-        }
-
-        if (oDangChon == 4) continue;
-        string& giaTri = *oNhap[oDangChon];
-        if (c == 8) {
-            if (viTri > 0) {
-                giaTri.erase(viTri - 1, 1);
-                viTri--;
-                if (oDangChon > 0) VietHoaDauTu(giaTri);
-                thongBao.clear();
-            }
-            continue;
-        }
-        if (c < 32 || c > 255) continue;
-        unsigned char kyTu = static_cast<unsigned char>(c);
-        bool hopLe = oDangChon == 0 ? isalnum(kyTu) : (isalpha(kyTu) || c == ' ');
-        if (!hopLe) continue;
-        if (giaTri.size() >= gioiHan[oDangChon]) {
-            thongBao = "O nay toi da " + to_string(gioiHan[oDangChon]) + " ky tu.";
-            continue;
-        }
-        char moi = oDangChon == 0 ? static_cast<char>(toupper(kyTu)) : static_cast<char>(c);
-        giaTri.insert(viTri, 1, moi);
-        viTri++;
-        if (oDangChon > 0) VietHoaDauTu(giaTri);
-        thongBao.clear();
-    }
-
+    ds.ds[viTriChen] = nvMoi; // Dat nhan vien moi vao dung cho
+    ds.soLuong++;             // Tang so luong nhan vien len 1
+    return viTriChen;
 }
-} // namespace
 
-string DuongDanFileNhanVien(const string& tenFile) {
-    if (tenFile.find_first_of("/\\") != string::npos || tenFile.find(':') != string::npos) return tenFile;
-    char duongDan[MAX_PATH];
-    DWORD doDai = GetModuleFileNameA(nullptr, duongDan, MAX_PATH);
-    if (doDai == 0 || doDai >= MAX_PATH) return tenFile;
-    string chuongTrinh(duongDan, doDai);
-    size_t viTri = chuongTrinh.find_last_of("/\\");
-    return viTri == string::npos ? tenFile : chuongTrinh.substr(0, viTri + 1) + tenFile;
-}
+// ==========================================================
+// 3. DOC VA GHI FILE CO BAN (DUNG IFSTREAM / OFSTREAM)
+// Moi dong trong NhanVien.txt co dang: MANV|Ho|Ten|Phai
+// ==========================================================
 
 bool GhiFileNhanVien(const DanhSachNhanVien& ds, const string& tenFile) {
-    if (ds.soLuong < 0 || ds.soLuong > 500) return false;
-    for (int i = 0; i < ds.soLuong; i++) {
-        if (ds.ds[i] == nullptr || !ThongTinNhanVienHopLe(*ds.ds[i])) return false;
-        for (int j = 0; j < i; j++) if (ds.ds[j]->MANV == ds.ds[i]->MANV) return false;
-    }
-    string duongDan = DuongDanFileNhanVien(tenFile);
-    string fileTam = duongDan + ".tmp";
-    ofstream file(fileTam.c_str(), ios::out | ios::trunc);
-    if (!file.is_open()) return false;
-    for (int i = 0; i < ds.soLuong; i++) {
-        const NhanVien& nv = *ds.ds[i];
-        file << nv.MANV << '|' << nv.ho << '|' << nv.ten << '|' << nv.phai << '\n';
-    }
-    file.close();
-    if (!file || !MoveFileExA(fileTam.c_str(), duongDan.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        remove(fileTam.c_str());
+    ofstream fileOut(tenFile.c_str()); // Mo file de ghi
+    if (!fileOut.is_open()) {
         return false;
     }
+
+    for (int i = 0; i < ds.soLuong; i++) {
+        fileOut << ds.ds[i]->MANV << "|"
+                << ds.ds[i]->ho   << "|"
+                << ds.ds[i]->ten  << "|"
+                << ds.ds[i]->phai << "\n";
+    }
+
+    fileOut.close();
     return true;
 }
 
 bool DocFileNhanVien(DanhSachNhanVien& ds, const string& tenFile) {
-    if (ds.soLuong != 0) return false;
-    string duongDan = DuongDanFileNhanVien(tenFile);
-    if (GetFileAttributesA(duongDan.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        DWORD loi = GetLastError();
-        return loi == ERROR_FILE_NOT_FOUND || loi == ERROR_PATH_NOT_FOUND;
+    ifstream fileIn(tenFile.c_str()); // Mo file de doc
+    if (!fileIn.is_open()) {
+        return true; // Chua co file thi coi nhu danh sach ban dau rong (0 NV)
     }
-    ifstream file(duongDan.c_str());
-    if (!file.is_open()) return false;
-    DanhSachNhanVien tam;
-    string dong;
-    bool hopLe = true;
-    bool dongDau = true;
-    while (getline(file, dong)) {
-        if (dongDau && dong.compare(0, 3, "\xEF\xBB\xBF") == 0) dong.erase(0, 3);
-        dongDau = false;
-        if (!dong.empty() && dong.back() == '\r') dong.pop_back();
-        if (dong.find_first_not_of(" \t") == string::npos) continue;
-        if (tam.soLuong >= 500) { hopLe = false; break; }
-        NhanVien nv = {"", "", "", "", NULL};
-        istringstream tach(dong);
-        if (!getline(tach, nv.MANV, '|') || !getline(tach, nv.ho, '|') ||
-            !getline(tach, nv.ten, '|') || !getline(tach, nv.phai)) { hopLe = false; break; }
-        for (char& c : nv.MANV) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
-        nv.ho = ChuanHoaThongTinNhanVien(nv.ho);
-        nv.ten = ChuanHoaThongTinNhanVien(nv.ten);
-        nv.phai = ChuanHoaThongTinNhanVien(nv.phai);
-        if (!ThongTinNhanVienHopLe(nv) || TimKiemNhanVien(tam, nv.MANV) != -1) { hopLe = false; break; }
-        ChenNhanVienTheoMa(tam, new NhanVien(nv));
+
+    string maNV, ho, ten, phai;
+
+    // Doc tung dong theo dau ngan cach '|'
+    while (getline(fileIn, maNV, '|')) {
+        getline(fileIn, ho, '|');
+        getline(fileIn, ten, '|');
+        getline(fileIn, phai);
+
+        // Xoa ky tu xuong dong '\r' o cuoi dong (neu co tren Windows)
+        if (!phai.empty() && phai.back() == '\r') {
+            phai.pop_back();
+        }
+
+        // Bo qua dong trong hoac khi mang da day 500 nguoi
+        if (maNV.empty() || ds.soLuong >= 500) {
+            continue;
+        }
+
+        // Neu ma NV chua ton tai thi tao node moi va chen vao mang
+        if (TimKiemNhanVien(ds, maNV) == -1) {
+            NhanVien* nvMoi = new NhanVien;
+            nvMoi->MANV = maNV;
+            nvMoi->ho   = ho;
+            nvMoi->ten  = ten;
+            nvMoi->phai = phai;
+            nvMoi->dshd = NULL; // Chua co hoa don nao
+
+            ChenNhanVienTheoMa(ds, nvMoi);
+        }
     }
-    if (file.bad() || (file.fail() && !file.eof())) hopLe = false;
-    if (!hopLe) {
-        for (int i = 0; i < tam.soLuong; i++) delete tam.ds[i];
+
+    fileIn.close();
+    return true;
+}
+
+// ==========================================================
+// 4. HAM NHAP NHAN VIEN TREN FORM & CAP NHAT BANG BEN DUOI
+// Moi viec chuan hoa ky tu deu goi tu Validate.cpp
+// ==========================================================
+bool NhapMotNhanVien(DanhSachNhanVien& ds, const string& tenFile,
+                     int& trangDS, int& viTriVuaThem) {
+    if (ds.soLuong >= 500) {
         return false;
     }
-    for (int i = 0; i < tam.soLuong; i++) ds.ds[i] = tam.ds[i];
-    ds.soLuong = tam.soLuong;
-    return true;
+
+    NhanVien nv = {"", "", "", "", NULL};                  // Luu du lieu 4 o dang nhap
+    string* oNhap[4] = {&nv.MANV, &nv.ho, &nv.ten, &nv.phai}; // Con tro tro vao 4 o
+    const int gioiHan[4] = {5, 20, 10, 3};                 // So ky tu toi da cua tung o
+    int oDangChon = 0;                                     // 0:MANV, 1:Ho, 2:Ten, 3:Phai, 4:Nut Luu
+    string thongBaoLoi = "";
+
+    while (true) {
+        int doDaiChuoi = (oDangChon < 4) ? (int)oNhap[oDangChon]->length() : 0;
+        HienFormNhanVien(nv, oDangChon, doDaiChuoi, thongBaoLoi);
+
+        int c = _getch();
+        if (c == 27) return false; // Phim Esc: thoat ve menu chinh
+
+        bool bamNutLuu = false;
+
+        // 1. Xu ly phim mui ten Len/Xuong, F2, PgUp/PgDn
+        if (c == 0 || c == 224) {
+            int phim = _getch();
+            int soTrang = (ds.soLuong == 0) ? 1 : (ds.soLuong + SO_NV_MOI_TRANG_NHAP - 1) / SO_NV_MOI_TRANG_NHAP;
+
+            if (phim == 72 || phim == 80) { // 72: Mui ten Len, 80: Mui ten Xuong
+                if (oDangChon < 4) XoaKhoangTrangCuoi(*oNhap[oDangChon]);
+                oDangChon = (phim == 72) ? (oDangChon + 4) % 5 : (oDangChon + 1) % 5;
+                thongBaoLoi = "";
+            } else if (phim == 60) { // F2: Luu
+                bamNutLuu = true;
+            } else if (phim == 73 && trangDS > 0) { // PgUp: Trang truoc
+                trangDS--;
+                HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
+            } else if (phim == 81 && trangDS < soTrang - 1) { // PgDn: Trang sau
+                trangDS++;
+                HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
+            }
+            if (!bamNutLuu) continue;
+        }
+        // 2. Xu ly phim Enter va Tab
+        else if (c == 13 && oDangChon == 4) {
+            bamNutLuu = true; // Enter tai nut Luu
+        } else if (c == 13 || c == 9) { // Enter hoac Tab tai o nhap -> sang o tiep theo
+            if (oDangChon < 4) XoaKhoangTrangCuoi(*oNhap[oDangChon]);
+            oDangChon = (oDangChon + 1) % 5;
+            thongBaoLoi = "";
+            continue;
+        }
+
+        // 3. Kiem tra du lieu va Luu nhan vien
+        if (bamNutLuu) {
+            for (int i = 1; i < 4; i++) XoaKhoangTrangCuoi(*oNhap[i]);
+
+            int oBiLoi = -1;
+            if (chuoirong(nv.MANV)) {
+                oBiLoi = 0;
+                thongBaoLoi = "Ma nhan vien khong duoc de trong.";
+            } else if (TimKiemNhanVien(ds, nv.MANV) != -1) {
+                oBiLoi = 0;
+                thongBaoLoi = "Ma da ton tai. Vui long nhap ma khac.";
+            } else if (chuoirong(nv.ho)) {
+                oBiLoi = 1;
+                thongBaoLoi = "Ho va ten dem khong duoc de trong.";
+            } else if (chuoirong(nv.ten)) {
+                oBiLoi = 2;
+                thongBaoLoi = "Ten khong duoc de trong.";
+            } else if (nv.phai != "Nam" && nv.phai != "Nu") {
+                oBiLoi = 3;
+                thongBaoLoi = "Phai chi nhan Nam hoac Nu.";
+            }
+
+            if (oBiLoi == -1) {
+                NhanVien* nvMoi = new NhanVien(nv);
+                int viTriMoi = ChenNhanVienTheoMa(ds, nvMoi);
+                GhiFileNhanVien(ds, tenFile);
+
+                viTriVuaThem = viTriMoi;
+                trangDS = viTriMoi / SO_NV_MOI_TRANG_NHAP;
+                return true;
+            }
+            oDangChon = oBiLoi;
+            continue;
+        }
+
+        // 4. Goi ham chuan hoa ky tu ben Validate.cpp cho o dang chon
+        if (oDangChon == 4) continue;
+
+        int ketQua = (oDangChon == 0)
+            ? XuLyPhimMaID(nv.MANV, c, gioiHan[0])
+            : XuLyPhimChuoiChuanHoa(*oNhap[oDangChon], c, gioiHan[oDangChon]);
+
+        if (ketQua == 1) {
+            thongBaoLoi = "";
+        } else if (ketQua == -1) {
+            thongBaoLoi = "O nay toi da " + to_string(gioiHan[oDangChon]) + " ky tu.";
+        }
+    }
 }
 
 bool ThemNhanVien(DanhSachNhanVien& ds, const string& tenFile) {
     int soLuongBanDau = ds.soLuong;
+    int trangDS = 0;
+    int viTriVuaThem = -1;
+
     VeKhungNhanVien("THEM VA CAP NHAT NHAN VIEN");
     HienSoLuongNhanVien(ds.soLuong);
-    while (ds.soLuong < 500 && NhapMotNhanVien(ds, tenFile)) {
+    HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
+
+    while (ds.soLuong < 500 && NhapMotNhanVien(ds, tenFile, trangDS, viTriVuaThem)) {
         HienSoLuongNhanVien(ds.soLuong);
+        HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
     }
+
     if (ds.soLuong >= 500) {
         HienThongBaoDayNhanVien();
         while (true) {
             int c = _getch();
             if (c == 27 || c == 13) break;
-            if (c == 0 || c == 224) _getch();
+            if (c == 0 || c == 224) {
+                int phim = _getch();
+                int soTrang = (ds.soLuong == 0) ? 1 : (ds.soLuong + SO_NV_MOI_TRANG_NHAP - 1) / SO_NV_MOI_TRANG_NHAP;
+                if (phim == 73 && trangDS > 0) {
+                    trangDS--;
+                    HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
+                } else if (phim == 81 && trangDS < soTrang - 1) {
+                    trangDS++;
+                    HienBangNhanVienTheoMaKhiNhap(ds.ds, ds.soLuong, trangDS, viTriVuaThem);
+                }
+            }
         }
     }
     return ds.soLuong > soLuongBanDau;
 }
-  
-  
+
+// ==========================================================
+// 5. IN DANH SACH NHAN VIEN SAP XEP THEO TEN, HO (BUBBLE SORT)
+// ==========================================================
 void InDanhSachNhanVien(const DanhSachNhanVien& ds) {
     const NhanVien* thutu[500];
     for (int i = 0; i < ds.soLuong; i++) {
         thutu[i] = ds.ds[i];
     }
 
-    for (int i = 1; i < ds.soLuong; i++) {
-        const NhanVien* dangXet = thutu[i];
-        int j = i;
-        while (j > 0 &&
-               (thutu[j - 1]->ten > dangXet->ten ||
-                (thutu[j - 1]->ten == dangXet->ten &&
-                 thutu[j - 1]->ho > dangXet->ho))) {
-            thutu[j] = thutu[j - 1];
-            j--;
+    // Bubble Sort (Sap xep noi bot) theo Ten, neu trung Ten thi xep theo Ho
+    for (int i = 0; i < ds.soLuong - 1; i++) {
+        for (int j = 0; j < ds.soLuong - 1 - i; j++) {
+            if (thutu[j]->ten > thutu[j + 1]->ten ||
+                (thutu[j]->ten == thutu[j + 1]->ten && thutu[j]->ho > thutu[j + 1]->ho)) {
+                const NhanVien* tam = thutu[j];
+                thutu[j] = thutu[j + 1];
+                thutu[j + 1] = tam;
+            }
         }
-        thutu[j] = dangXet;
     }
 
     int trang = 0;
-    int soTrang = ds.soLuong == 0 ? 1 : (ds.soLuong + SO_NHAN_VIEN_MOI_TRANG - 1) / SO_NHAN_VIEN_MOI_TRANG;
+    int soTrang = (ds.soLuong == 0) ? 1 : (ds.soLuong + SO_NHAN_VIEN_MOI_TRANG - 1) / SO_NHAN_VIEN_MOI_TRANG;
     HienBangNhanVien(thutu, ds.soLuong, trang);
+
     while (true) {
         int c = _getch();
         if (c == 27 || c == 13) return;
         if (c != 0 && c != 224) continue;
+
         int phim = _getch();
         int trangCu = trang;
         if ((phim == 75 || phim == 72 || phim == 73) && trang > 0) trang--;
         else if ((phim == 77 || phim == 80 || phim == 81) && trang < soTrang - 1) trang++;
         else if (phim == 71) trang = 0;
         else if (phim == 79) trang = soTrang - 1;
-        if (trang != trangCu) HienBangNhanVien(thutu, ds.soLuong, trang);
+
+        if (trang != trangCu) {
+            HienBangNhanVien(thutu, ds.soLuong, trang);
+        }
     }
 }
-  
-     
-   
-     
-     
-     
-     
-     
-  
-  
-  
-   
-   
-   
-   
-   
-

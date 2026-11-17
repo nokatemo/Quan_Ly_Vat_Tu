@@ -3,13 +3,23 @@
 #pragma once
 #include "struct.h"
 
+// ==========================================================
+// KHAI BAO CAC HAM XU LY NHAN VIEN (DUNG CODE CO BAN, DE HIEU)
+// ==========================================================
+
+// 1. Tim kiem nhi phan nhan vien theo Ma NV (tra ve vi tri trong mang, hoac -1 neu khong co)
 int TimKiemNhanVien(const DanhSachNhanVien& ds, const string& maNV);
-// Ten file khong co thu muc se duoc tim trong thu muc chua chuong trinh.
-string DuongDanFileNhanVien(const string& tenFile = "NhanVien.txt");
-// Doc vao danh sach rong; file thieu duoc xem nhu danh sach rong.
+
+// 2. Doc danh sach nhan vien tu file NhanVien.txt vao mang
 bool DocFileNhanVien(DanhSachNhanVien& ds, const string& tenFile = "NhanVien.txt");
+
+// 3. Ghi danh sach nhan vien tu mang ra file NhanVien.txt
 bool GhiFileNhanVien(const DanhSachNhanVien& ds, const string& tenFile = "NhanVien.txt");
-// Nhap lien tiep den khi nhan Esc; true neu da them it nhat mot nhan vien.
+
+// 4. Giao dien nhap nhan vien moi + hien bang danh sach theo MNV ngay ben duoi
 bool ThemNhanVien(DanhSachNhanVien& ds, const string& tenFile = "NhanVien.txt");
+
+// 5. In danh sach nhan vien sap xep theo Ten, Ho (dung Bubble Sort)
 void InDanhSachNhanVien(const DanhSachNhanVien& ds);
+
 #endif

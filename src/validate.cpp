@@ -129,7 +129,7 @@ string nhapChuoiChuanHoa(size_t maxlen, bool* daHuy) {
         
         // 1. Xu ly Enter
         if (c == 13) { 
-            // Neu nguoi dung lo go khoang trang o cuoi -> Tu dong g?t bo truoc khi xong
+            // Neu nguoi dung lo go khoang trang o cuoi -> Tu dong got bo truoc khi xong
             if (!result.empty() && result.back() == ' ') {
                 result.pop_back(); 
                 cout << "\b \b" << flush;
@@ -297,5 +297,58 @@ double nhapsothuc() {
             s += kytu;
             cout << kytu << flush; 
         }	 
+    }
+}
+
+// =========================================================
+// PHAN 3: HAM CHUAN HOA TUNG PHIM CHO FORM CO DI CHUYEN LEN/XUONG
+// =========================================================
+
+// Xu ly 1 phim cho o Ma ID: chi nhan chu/so va tu dong IN HOA
+int XuLyPhimMaID(string& chuoi, int c, size_t maxlen) {
+    if (c == 8) { // Phim Backspace: xoa ky tu cuoi
+        if (!chuoi.empty()) {
+            chuoi.pop_back();
+            return 1;
+        }
+        return 0;
+    }
+    if (!isalnum(static_cast<unsigned char>(c))) return 0; // Bo qua ky tu la
+    if (chuoi.size() >= maxlen) return -1;                 // Da day do dai toi da
+
+    chuoi += static_cast<char>(toupper(static_cast<unsigned char>(c)));
+    return 1;
+}
+
+// Xu ly 1 phim cho o Ho, Ten, Phai: chan dau cach thua, viet hoa dau tu
+int XuLyPhimChuoiChuanHoa(string& chuoi, int c, size_t maxlen) {
+    if (c == 8) { // Phim Backspace: xoa ky tu cuoi
+        if (!chuoi.empty()) {
+            chuoi.pop_back();
+            return 1;
+        }
+        return 0;
+    }
+    if (!isalpha(static_cast<unsigned char>(c)) && c != ' ') return 0; // Chi nhan chu va cach
+    if (chuoi.size() >= maxlen) return -1;                              // Da day do dai toi da
+
+    if (c == ' ') {
+        if (chuoi.empty() || chuoi.back() == ' ') return 0; // Chan cach dau va 2 cach lien nhau
+        chuoi += ' ';
+        return 1;
+    }
+
+    if (chuoi.empty() || chuoi.back() == ' ') {
+        chuoi += static_cast<char>(toupper(static_cast<unsigned char>(c))); // Viet hoa dau tu
+    } else {
+        chuoi += static_cast<char>(tolower(static_cast<unsigned char>(c))); // Viet thuong chu con lai
+    }
+    return 1;
+}
+
+// Xoa khoang trang thua o cuoi chuoi khi nguoi dung roi khoi o nhap
+void XoaKhoangTrangCuoi(string& chuoi) {
+    while (!chuoi.empty() && chuoi.back() == ' ') {
+        chuoi.pop_back();
     }
 }

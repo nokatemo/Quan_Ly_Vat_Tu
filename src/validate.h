@@ -27,6 +27,10 @@ int sosanhngay(int d1, int m1, int y1, int d2, int m2, int y2);
 // Kiem tra xem chuoi co bi lan chu so vao khong (phuc vu kiem tra Ho Ten)
 bool conso(const std::string& ten);
 
+// Bo khoang trang thua va viet hoa chu cai dau moi tu.
+// Ham nay chi xu ly chuoi co san, khong doc ban phim.
+std::string ChuanHoaHoTen(const std::string& str);
+
 
 // =========================================================
 // PHAN 2: CAC HAM NHAP LIEU CHUAN HOA TRUC TIEP KHI GO (LIVE)
@@ -58,5 +62,14 @@ int nhapsonguyen();
 // - Chi nhan cac so 0-9 va toi da 1 dau cham phay dong (.)
 // - Chan dau tru '-' va nhieu dau cham cung luc
 double nhapsothuc();
+
+
+// =========================================================
+// PHAN 3: HAM CHUAN HOA TUNG PHIM CHO FORM CO DI CHUYEN LEN/XUONG
+// Tra ve: 1 (da them/xoa ky tu), -1 (day maxlen), 0 (bo qua phim)
+// =========================================================
+int XuLyPhimMaID(std::string& chuoi, int c, std::size_t maxlen);
+int XuLyPhimChuoiChuanHoa(std::string& chuoi, int c, std::size_t maxlen);
+void XoaKhoangTrangCuoi(std::string& chuoi);
 
 #endif // VALIDATE_H
