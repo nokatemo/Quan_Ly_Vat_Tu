@@ -4,8 +4,8 @@
 CPP      = g++.exe
 CC       = gcc.exe
 WINDRES  = windres.exe
-OBJ      = main.o NhanVien.o UI.o Validate.o ThongKe.o
-LINKOBJ  = main.o NhanVien.o UI.o Validate.o ThongKe.o
+OBJ      = main.o NhanVien.o Validate.o ThongKe_DoanhThu.o UI.o
+LINKOBJ  = main.o NhanVien.o Validate.o ThongKe_DoanhThu.o UI.o
 LIBS     = -L"C:/Users/admin/Dev-Cpp/MinGW64/lib" -L"C:/Users/admin/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc
 INCS     = -I"C:/Users/admin/Dev-Cpp/MinGW64/include" -I"C:/Users/admin/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Users/admin/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
 CXXINCS  = -I"C:/Users/admin/Dev-Cpp/MinGW64/include" -I"C:/Users/admin/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Users/admin/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"C:/Users/admin/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
@@ -30,11 +30,11 @@ main.o: main.cpp
 NhanVien.o: NhanVien.cpp
 	$(CPP) -c NhanVien.cpp -o NhanVien.o $(CXXFLAGS)
 
-UI.o: UI.cpp
-	$(CPP) -c UI.cpp -o UI.o $(CXXFLAGS)
-
 Validate.o: Validate.cpp
 	$(CPP) -c Validate.cpp -o Validate.o $(CXXFLAGS)
 
-ThongKe.o: ThongKe.cpp
-	$(CPP) -c ThongKe.cpp -o ThongKe.o $(CXXFLAGS)
+ThongKe_DoanhThu.o: ThongKe_DoanhThu.cpp
+	$(CPP) -c ThongKe_DoanhThu.cpp -o ThongKe_DoanhThu.o $(CXXFLAGS)
+
+UI.o: UI.cpp
+	$(CPP) -c UI.cpp -o UI.o $(CXXFLAGS)

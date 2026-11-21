@@ -12,39 +12,39 @@ using namespace std;
 // Mang ds.ds[] luon duoc sap xep tang dan theo MANV
 // ==========================================================
 int TimKiemNhanVien(const DanhSachNhanVien& ds, const string& maNV) {
-    int Left = 0;                // Chi so dau mang
-    int Right = ds.soLuong - 1;  // Chi so cuoi mang
+    int Left = 0;                
+    int Right = ds.soLuong - 1;  
 
     while (Left <= Right) {
-        int Mid = (Left + Right) / 2; // Vi tri o giua
+        int Mid = (Left + Right) / 2; 
 
         if (ds.ds[Mid]->MANV == maNV) {
-            return Mid; // Tim thay tai vi tri Mid
+            return Mid; 
         }
         if (maNV < ds.ds[Mid]->MANV) {
-            Right = Mid - 1; // Tim o nua ben trai
+            Right = Mid - 1; 
         } else {
-            Left = Mid + 1;  // Tim o nua ben phai
+            Left = Mid + 1;  
         }
     }
-    return -1; // Khong tim thay
+    return -1;
 }
 
 // ==========================================================
 // 2. HAM CHEN NHAN VIEN VAO MANG THEO THU TU TANG DAN MA NV
 // ==========================================================
 int ChenNhanVienTheoMa(DanhSachNhanVien& ds, NhanVien* nvMoi) {
-    int viTriChen = ds.soLuong; // Mac dinh chen o cuoi mang
+    int i = ds.soLuong; // Mac dinh chen o cuoi mang
 
     // Doi cac nhan vien co MANV lon hon sang phai 1 o de nhuong cho
-    while (viTriChen > 0 && ds.ds[viTriChen - 1]->MANV > nvMoi->MANV) {
-        ds.ds[viTriChen] = ds.ds[viTriChen - 1];
-        viTriChen--;
+    while (i > 0 && ds.ds[i - 1]->MANV > nvMoi->MANV) {
+        ds.ds[i] = ds.ds[i - 1];
+        i--;
     }
 
-    ds.ds[viTriChen] = nvMoi; // Dat nhan vien moi vao dung cho
-    ds.soLuong++;             // Tang so luong nhan vien len 1
-    return viTriChen;
+    ds.ds[i] = nvMoi; 
+    ds.soLuong++;            
+    return i;
 }
 
 // ==========================================================

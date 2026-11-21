@@ -3,45 +3,57 @@
 
 #include <iostream>
 #include <windows.h>
-#include <conio.h> 
+#include <conio.h>
 #include <string>
 
 // ==========================================================
-// KHAI BAO CAC HAM CHUC NANG GIAO DIEN (UI)
+// THONG SO TOA DO VA KICH THUOC CHUAN CUA KHUNG CHINH
 // ==========================================================
+const int OFFSET_X = 12;
+const int OFFSET_Y = 0;
+const int WIDTH    = 96;
+const int HEIGHT   = 28;
 
-// Ham di chuyen con tro chuot tren man hinh console den toa do (x, y)
+const int SO_NHAN_VIEN_MOI_TRANG = 12; // So dong moi trang o Menu 4 (vua khit Y = 3..23)
+const int SO_NV_MOI_TRANG_NHAP   = 4;  // So dong moi trang o bang duoi Form nhap (Menu 3)
+
+struct NhanVien;
+
+// ==========================================================
+// CAC HAM HO TRO GIAO DIEN DUNG CHUNG
+// ==========================================================
+int getDynamicOffsetX();
 void gotoxy(int x, int y);
-
-// Ham thay doi mau sac cho van ban (to mau chu va mau nen)
 void textcolor(int color);
-
-// Ham an hoac hien con tro chuot 
 void ShowConsoleCursor(bool showFlag);
 
-// Hien du cac o nhap va danh dau o dang duoc chon (0-3), hoac nut Luu (4).
-struct NhanVien;
-const int SO_NHAN_VIEN_MOI_TRANG = 15; // So dong moi trang khi xem danh sach o Menu 4
-const int SO_NV_MOI_TRANG_NHAP = 10;   // So dong moi trang o bang nam duoi Form nhap (Menu 3)
+void drawBox(int x, int y, int w, int h, int color = 3, bool doubleLine = false);
+void clearContentArea();
+void veTieuDeChucNang(const std::string& tieuDe);
+void veThanhHuongDan(int x, int y, const std::string& noiDung);
+void hienThiONhap(int x, int y, const std::string& giaTri, int maxLen,
+                  int viTriConTro, bool dangChon, int doRongXoa);
+
+// ==========================================================
+// CAC HAM GIAO DIEN MODULE NHAN VIEN (CHUC NANG 3 & 4)
+// ==========================================================
 void VeKhungNhanVien(const std::string& tieuDe);
 void HienSoLuongNhanVien(int soLuong);
 void HienThongBaoDayNhanVien();
 void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro,
-                     const std::string& thongBao = "");
+                      const std::string& thongBao = "");
 void HienBangNhanVienTheoMaKhiNhap(const NhanVien* const ds[], int soLuong,
                                    int trang = 0, int viTriVuaThem = -1);
 void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang);
 
-// Ham ve khung vien hinh chu nhat bao quanh menu
+// ==========================================================
+// CAC HAM DIEU KHIEN MENU CHINH
+// ==========================================================
+void showSplashScreen();
 void drawFrame();
-
-// Ham in cac thong tin co dinh (Ten truong, ten Nguyen Khoa, ma sinh vien...)
 void printStaticText();
-
-// Ham in danh sach 10 chuc nang va to mau muc dang duoc chon
+void veKhungPhuMenuChinh();
 void printMenuItems(int selectedIndex);
-
-// Ham xu ly vong lap chinh, nhan phim mui ten va dieu huong switch-case
 void menuController();
 
 #endif

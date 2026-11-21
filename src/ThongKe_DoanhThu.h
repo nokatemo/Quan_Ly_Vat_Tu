@@ -1,5 +1,5 @@
-#ifndef THONGKE_H
-#define THONGKE_H
+#ifndef THONGKE_DOANHTHU_H
+#define THONGKE_DOANHTHU_H
 
 #include "struct.h"
 
