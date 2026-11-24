@@ -1,53 +1,51 @@
 #include "UI.h"
-#include <conio.h> 
-#include <iomanip>
 #include <iostream>
+#include <iomanip>
+#include <conio.h> 
+#include <windows.h>
 
 using namespace std;
 
 // ==========================================================
-// PHAN 1: THONG SO TOA DO VA DANH SACH MENU CHINH
+// PHAN 1: CAI DAT THONG SO TOA DO VA DANH SACH MENU
 // ==========================================================
 
-// Toa do goc va kich thuoc khung ung dung chinh
-const int OFFSET_X = 15;
-const int OFFSET_Y = 0;
-const int WIDTH = 95;
-const int HEIGHT = 28;
+int getDynamicOffsetX() {
+    return OFFSET_X;
+}
 
-// So luong phan tu va danh sach ten cac chuc nang Menu
 const int NUM_ITEMS = 10;
 string menuItems[NUM_ITEMS] = {
-    "1.Cap Nhat Vat Tu",
-    "2.In Danh Sach Vat Tu Ton Kho",
-    "3.Cap Nhat Nhan Vien",
-    "4.In Danh Sach Nhan Vien",
-    "5.Lap Hoa Don Nhap / Xuat",
-    "6.In Chi Tiet 1 Hoa Don",
-    "7.Thong Ke Hoa Don Theo Thoi Gian",
-    "8.Top 10 Vat Tu Doanh Thu Cao Nhat",
-    "9.Thong Ke Doanh Thu Theo Thang",
-    "0.Thoat Chuong Trinh"
+    "1. Cap Nhat Vat Tu",
+    "2. In Danh Sach Vat Tu Ton Kho",
+    "3. Cap Nhat Nhan Vien",
+    "4. In Danh Sach Nhan Vien",
+    "5. Lap Hoa Don Nhap / Xuat",
+    "6. In Chi Tiet 1 Hoa Don",
+    "7. Thong Ke Hoa Don Theo Thoi Gian",
+    "8. Top 10 Vat Tu Doanh Thu Cao Nhat",
+    "9. Thong Ke Doanh Thu Theo Thang",
+    "0. Thoat Chuong Trinh"
 };
 
 // ==========================================================
-// PHAN 2: CAC HAM HO TRO DIEU KHIEN CON TRO & MAU SAC CONSOLE
+// PHAN 2: CAC HAM HO TRO GIAO DIEN (CON TRO & MAU SAC)
 // ==========================================================
 
 // Di chuyen con tro console den toa do (x, y)
 void gotoxy(int x, int y) {
     COORD coord;
-    coord.X = x;
-    coord.Y = y;
+    coord.X = static_cast<SHORT>(x);
+    coord.Y = static_cast<SHORT>(y);
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
-// Thiet lap mau chu va mau nen console
+// Doi mau chu va mau nen console
 void textcolor(int color) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
-// An hoac hien con tro nhap nhay tren console (showFlag = true: hien, false: an)
+// An hoac hien con tro nhap nhay tren man hinh
 void ShowConsoleCursor(bool showFlag) {
     HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO cursorInfo;
@@ -56,89 +54,303 @@ void ShowConsoleCursor(bool showFlag) {
     SetConsoleCursorInfo(out, &cursorInfo);
 }
 
-// Ve khung hinh chu nhat voi vi tri (x,y), chieu rong w, chieu cao h va mau color
-void drawBox(int x, int y, int w, int h, int color) {
+// Ve khung hinh chu nhat net don hoac net doi
+void drawBox(int x, int y, int w, int h, int color, bool doubleLine) {
+    if (w < 2 || h < 2) return;
+    char tl = doubleLine ? char(201) : char(218);
+    char tr = doubleLine ? char(187) : char(191);
+    char bl = doubleLine ? char(200) : char(192);
+    char br = doubleLine ? char(188) : char(217);
+    char hz = doubleLine ? char(205) : char(196);
+    char vt = doubleLine ? char(186) : char(179);
+
     textcolor(color);
-    // Ve hai duong ke ngang tren va duoi
-    for (int i = 0; i <= w; i++) {
-        gotoxy(x + i, y);     cout << char(178);
-        gotoxy(x + i, y + h); cout << char(178);
+    gotoxy(x, y);
+    cout << tl << string(w - 2, hz) << tr;
+
+    for (int i = 1; i < h - 1; ++i) {
+        gotoxy(x, y + i);
+        cout << vt;
+        gotoxy(x + w - 1, y + i);
+        cout << vt;
     }
-    // Ve hai duong ke doc trai va phai
-    for (int i = 0; i <= h; i++) {
-        gotoxy(x, y + i);     cout << char(178);
-        gotoxy(x + w, y + i); cout << char(178);
-    }
+
+    gotoxy(x, y + h - 1);
+    cout << bl << string(w - 2, hz) << br;
+    textcolor(15);
 }
 
-// Xoa mot dong tai toa do (x,y) voi chieu dai dinh truoc
+// Xoa mot doan van ban tren cung mot dong
 void clearLine(int x, int y, int length) {
     gotoxy(x, y);
     for (int i = 0; i < length; i++) cout << " ";
     gotoxy(x, y);
 }
 
-// Ve khung vien tong the bao quanh toan giao dien ung dung
-void drawFrame() {
-    textcolor(6);
-    // Ve cac duong ke ngang chia cac phan header, body va footer
-    for (int i = 0; i <= WIDTH; i++) {
-        gotoxy(OFFSET_X + i, OFFSET_Y);      cout << char(178);
-        gotoxy(OFFSET_X + i, OFFSET_Y + 2);  cout << char(178);
-        gotoxy(OFFSET_X + i, OFFSET_Y + 24); cout << char(178);
-        gotoxy(OFFSET_X + i, OFFSET_Y + 28); cout << char(178);
+// ==========================================================
+// PHAN 3: MAN HINH KHOI DONG PTIT (SPLASH SCREEN)
+// ==========================================================
+
+void showSplashScreen() {
+    system("cls");
+    ShowConsoleCursor(false);
+
+    int offsetX = getDynamicOffsetX();
+    drawBox(offsetX + 5, 3, 88, 24, 6, true);
+    drawBox(offsetX + 7, 4, 84, 22, 3, false);
+
+    const string blockP[6] = {
+        string(6, char(219)) + " ",
+        string(2, char(219)) + "   " + string(2, char(219)),
+        string(6, char(219)) + " ",
+        string(2, char(219)) + "     ",
+        string(2, char(219)) + "     ",
+        string(2, char(219)) + "     "
+    };
+    const string blockT[6] = {
+        string(6, char(219)),
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  "
+    };
+    const string blockI[6] = {
+        string(6, char(219)),
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        "  " + string(2, char(219)) + "  ",
+        string(6, char(219))
+    };
+
+    int wordX = offsetX + 32;
+    int wordY = 6;
+    for (int r = 0; r < 6; ++r) {
+        gotoxy(wordX, wordY + r);
+        textcolor(12); cout << blockP[r] << "   " << blockT[r] << "   ";
+        textcolor(14); cout << blockI[r] << "   " << blockT[r];
     }
 
-    // Ve hai bien doc hai ben
-    for (int i = 0; i <= HEIGHT; i++) {
-        gotoxy(OFFSET_X, OFFSET_Y + i);         cout << char(178);
-        gotoxy(OFFSET_X + WIDTH, OFFSET_Y + i); cout << char(178);
+    gotoxy(offsetX + 13, 14);
+    textcolor(8);
+    cout << string(72, char(196));
+
+    gotoxy(offsetX + 18, 15);
+    textcolor(14);
+    cout << "HOC VIEN CONG NGHE BUU CHINH VIEN THONG - PHAN HIEU TP. HCM";
+
+    gotoxy(offsetX + 32, 17);
+    textcolor(11);
+    cout << "HE THONG QUAN LY VAT TU";
+
+    gotoxy(offsetX + 30, 18);
+    textcolor(7);
+    cout << "Mon hoc: Cau Truc Du Lieu & Giai Thuat";
+
+    int barX = offsetX + 24;
+    int barY = 21;
+    int totalSteps = 42;
+
+    for (int step = 0; step <= totalSteps; ++step) {
+        int percent = (step * 100) / totalSteps;
+        gotoxy(barX, barY);
+        textcolor(3);  cout << "[";
+        textcolor(10); cout << string(step, char(219));
+        textcolor(8);  cout << string(totalSteps - step, char(176)) << "] ";
+        textcolor(14); cout << setw(3) << percent << "%";
+
+        gotoxy(offsetX + 32, barY + 1);
+        textcolor(7);
+        if (percent < 40)      cout << "Dang khoi tao cau truc du lieu...   ";
+        else if (percent < 80) cout << "Dang nap du lieu tu file he thong... ";
+        else                   cout << "Hoan tat! Dang mo giao dien chinh... ";
+
+        if (_kbhit()) {
+            _getch();
+            break;
+        }
+        Sleep(45);
     }
-    gotoxy(0, 0);
+
+    textcolor(15);
 }
 
-// In phan chu tinh (Header & Footer): Ten truong hoc va danh sach thanh vien thuc hien
-void printStaticText() {
-    textcolor(14);
-    // Header truong hoc
-    gotoxy(OFFSET_X + 13, OFFSET_Y + 1); 
-    cout << "HOC VIEN CONG NGHE BUU CHINH VIEN THONG PHAN HIEU THANH PHO HO CHI MINH";
+// ==========================================================
+// PHAN 4: CAC HAM VE KHUNG CHINH VA MENU DASHBOARD
+// ==========================================================
 
-    // Footer thong tin sinh vien thuc hien
-    gotoxy(OFFSET_X + 15, OFFSET_Y + 25); 
-    cout << ">> Bui Vu Nguyen Khoa -------- N25DECE097  -------- E25CQCE03-N <<";
+// Ve khung vien doi tong the cua Menu Chinh
+void drawFrame() {
+    int offsetX = getDynamicOffsetX();
+    textcolor(6); 
+    
+    gotoxy(offsetX, OFFSET_Y);
+    cout << char(201) << string(WIDTH - 1, char(205)) << char(187);
 
-    gotoxy(OFFSET_X + 15, OFFSET_Y + 26); 
-    cout << ">> Ngo Minh Tien      -------- N25DECE121  -------- E25CQCE03-N <<";
+    gotoxy(offsetX, OFFSET_Y + 2);
+    cout << char(204) << string(WIDTH - 1, char(205)) << char(185);
 
-    gotoxy(OFFSET_X + 15, OFFSET_Y + 27); 
-    cout << ">> Tran Trung Nguyen  -------- N25DECE105  -------- E25CQCE03-N <<";
+    gotoxy(offsetX, OFFSET_Y + 24);
+    cout << char(204) << string(WIDTH - 1, char(205)) << char(185);
+
+    gotoxy(offsetX, OFFSET_Y + 28);
+    cout << char(200) << string(WIDTH - 1, char(205)) << char(188);
+
+    for (int i = 1; i < HEIGHT; i++) {
+        if (i == 2 || i == 24) continue;
+        gotoxy(offsetX, OFFSET_Y + i);         cout << char(186);
+        gotoxy(offsetX + WIDTH, OFFSET_Y + i); cout << char(186);
+    }
+    
+    textcolor(15);
     gotoxy(0, 0); 
 }
 
-// In danh sach cac chuc nang Menu chinh, highlight muc dang duoc chon
+// In ten truong o Header va thong tin 3 thanh vien o Footer (Chi hien o Menu)
+void printStaticText() {
+    int offsetX = getDynamicOffsetX();
+    gotoxy(offsetX + 1, OFFSET_Y + 1);
+    textcolor(7); cout << string(WIDTH - 1, ' ');
+
+    string title = "HOC VIEN CONG NGHE BUU CHINH VIEN THONG - PHAN HIEU TP. HCM";
+    int titleX = offsetX + (WIDTH - (int)title.length()) / 2;
+    gotoxy(titleX, OFFSET_Y + 1);
+    textcolor(14);
+    cout << title;
+
+    gotoxy(offsetX + 14, OFFSET_Y + 25);
+    textcolor(11); cout << "Thanh vien 1: ";
+    textcolor(15); cout << "Bui Vu Nguyen Khoa";
+    textcolor(8);  cout << "  |  ";
+    textcolor(14); cout << "N25DECE097";
+    textcolor(8);  cout << "  |  ";
+    textcolor(10); cout << "E25CQCE03-N";
+
+    gotoxy(offsetX + 14, OFFSET_Y + 26);
+    textcolor(11); cout << "Thanh vien 2: ";
+    textcolor(15); cout << "Ngo Minh Tien     ";
+    textcolor(8);  cout << "  |  ";
+    textcolor(14); cout << "N25DECE121";
+    textcolor(8);  cout << "  |  ";
+    textcolor(10); cout << "E25CQCE03-N";
+
+    gotoxy(offsetX + 14, OFFSET_Y + 27);
+    textcolor(11); cout << "Thanh vien 3: ";
+    textcolor(15); cout << "Tran Trung Nguyen ";
+    textcolor(8);  cout << "  |  ";
+    textcolor(14); cout << "N25DECE105";
+    textcolor(8);  cout << "  |  ";
+    textcolor(10); cout << "E25CQCE03-N";
+    
+    textcolor(15);
+    gotoxy(0, 0); 
+}
+
+// Xoa vung noi dung ben trong khung
+void clearContentArea() {
+    int offsetX = getDynamicOffsetX();
+    textcolor(7);
+    string blankRow(WIDTH - 1, ' ');
+
+    for (int row = OFFSET_Y + 3; row <= OFFSET_Y + 23; ++row) {
+        gotoxy(offsetX + 1, row);
+        cout << blankRow;
+    }
+
+    textcolor(6);
+    gotoxy(offsetX, OFFSET_Y + 24);
+    cout << char(204) << string(WIDTH - 1, char(205)) << char(185);
+
+    textcolor(15);
+    gotoxy(offsetX + 1, OFFSET_Y + 3);
+}
+
+// Ve 3 khung phu ben trong Menu Chinh
+void veKhungPhuMenuChinh() {
+    int offsetX = getDynamicOffsetX();
+
+    // Khung 1: Danh muc chuc nang
+    drawBox(offsetX + 3, OFFSET_Y + 3, 56, 20, 3, false);
+    gotoxy(offsetX + 6, OFFSET_Y + 3);
+    textcolor(14); cout << " DANH MUC CHUC NANG ";
+
+    // Khung 2: Thong tin de tai (Da cap nhat ten de tai va bo sung DSLK)
+    drawBox(offsetX + 61, OFFSET_Y + 3, 34, 11, 3, false);
+    gotoxy(offsetX + 64, OFFSET_Y + 3);
+    textcolor(11); cout << " THONG TIN DE TAI ";
+
+    gotoxy(offsetX + 63, OFFSET_Y + 4);
+    textcolor(7);  cout << "Don vi:";
+    gotoxy(offsetX + 63, OFFSET_Y + 5);
+    textcolor(15); cout << "PTIT - Phan hieu TP. HCM";
+
+    gotoxy(offsetX + 63, OFFSET_Y + 7);
+    textcolor(7);  cout << "De tai:";
+    gotoxy(offsetX + 63, OFFSET_Y + 8);
+    textcolor(15); cout << "Quan Ly Vat Tu";
+
+    gotoxy(offsetX + 63, OFFSET_Y + 10);
+    textcolor(7);  cout << "Cau truc du lieu:";
+    gotoxy(offsetX + 63, OFFSET_Y + 11);
+    textcolor(10); cout << "- Cay BST & Mang Con Tro";
+    gotoxy(offsetX + 63, OFFSET_Y + 12);
+    textcolor(10); cout << "- Danh Sach Lien Ket Don";
+
+    // Khung 3: Phim dieu khien (Da bo dong TAB: Chuyen nhanh)
+    drawBox(offsetX + 61, OFFSET_Y + 15, 34, 8, 3, false);
+    gotoxy(offsetX + 64, OFFSET_Y + 15);
+    textcolor(14); cout << " PHIM DIEU KHIEN ";
+
+    gotoxy(offsetX + 63, OFFSET_Y + 17);
+    textcolor(11); cout << "UP / DOWN"; textcolor(7); cout << " : Chon chuc nang";
+    gotoxy(offsetX + 63, OFFSET_Y + 19);
+    textcolor(11); cout << "ENTER    "; textcolor(7); cout << " : Mo chuc nang";
+    gotoxy(offsetX + 63, OFFSET_Y + 21);
+    textcolor(11); cout << "ESC      "; textcolor(7); cout << " : Quay lai / Thoat";
+}
+
+// In danh sach 10 chuc nang va highlight dong dang chon
 void printMenuItems(int selectedIndex) {
-    int startY = OFFSET_Y + 4; 
+    int offsetX = getDynamicOffsetX();
+    int startY = OFFSET_Y + 5; 
+
     for (int i = 0; i < NUM_ITEMS; i++) {
-        gotoxy(OFFSET_X + 10, startY + (i * 2)); 
+        int rowY = startY + i;
+        gotoxy(offsetX + 5, rowY);
+
         if (i == selectedIndex) {
-            textcolor(31); // Highlight mau nen trang/xanh chu noi bat
-            cout << menuItems[i]; 
+            textcolor(31); 
+            cout << " > " << left << setw(49) << menuItems[i];
         } else {
-            textcolor(14); // Mau vang tieu chuan
-            cout << menuItems[i]; 
+            int tagColor = 11;
+            if (i < 2)       tagColor = 11; 
+            else if (i < 4)  tagColor = 10; 
+            else if (i < 6)  tagColor = 14; 
+            else if (i < 9)  tagColor = 13; 
+            else             tagColor = 12; 
+
+            string prefix = menuItems[i].substr(0, 3);
+            string label  = menuItems[i].substr(3);
+
+            textcolor(15);
+            cout << "   ";
+            textcolor(tagColor);
+            cout << prefix;
+            textcolor(i == NUM_ITEMS - 1 ? 12 : 15);
+            cout << left << setw(46) << label;
         }
     }
-    textcolor(14); 
+
+    textcolor(15); 
     gotoxy(0, 0);  
 }
 
 // ==========================================================
-// PHAN 3: CAC HAM NOI BO DINH DANG BANG VA KHUNG NHAN VIEN
+// PHAN 5: GIAO DIEN NHAN VIEN (GIU NGUYEN TUONG THICH CODE CU)
 // ==========================================================
 
 namespace {
-    // Hang so dinh vi khung Nhan Vien
     const int KHUNG_NV_X = 12;
     const int KHUNG_NV_Y = 1;
     const int KHUNG_NV_RONG = 98;
@@ -146,18 +358,15 @@ namespace {
     const int O_NHAP_NV_X = 58;
     const int RONG_O_NHAP = 24;
 
-    // Xoa mot dong trong khung Nhan Vien
     void XoaDongNV(int dong, int chieuRong = KHUNG_NV_RONG - 4) {
         clearLine(KHUNG_NV_X + 2, dong, chieuRong);
     }
 
-    // Can giua noi dung va them khoang trang hai ben cho o trong bang
     string CanCot(const string& text, int rong) {
         string noiDung = text.substr(0, max(0, rong - 2));
         return " " + noiDung + string(max(0, rong - 2 - (int)noiDung.size()), ' ') + " ";
     }
 
-    // Tao chuoi mot dong du lieu hoan chinh cho bang danh sach
     string DongBang(const string cot[5]) {
         const int rong[] = {6, 10, 32, 16, 10};
         string dong = "|";
@@ -165,7 +374,6 @@ namespace {
         return dong;
     }
 
-    // Tao chuoi duong vien ngan bang
     string VienBang() {
         const int rong[] = {6, 10, 32, 16, 10};
         string vien = "+";
@@ -174,16 +382,10 @@ namespace {
     }
 }
 
-// ==========================================================
-// PHAN 4: CAC HAM GIAO DIEN NHAN VIEN (CAN GIUA CHU & CON TRO)
-// ==========================================================
-
-// Ve khung va tieu de chung cho chuc nang Nhan Vien
 void VeKhungNhanVien(const string& tieuDe) {
     ShowConsoleCursor(false);
-    drawBox(KHUNG_NV_X, KHUNG_NV_Y, KHUNG_NV_RONG, KHUNG_NV_CAO, 14);
+    drawBox(KHUNG_NV_X, KHUNG_NV_Y, KHUNG_NV_RONG, KHUNG_NV_CAO, 14, false);
 
-    // Tinh toa do x de tieu de duoc can giua khung
     int padLeft = (KHUNG_NV_RONG - (int)tieuDe.length()) / 2;
     if (padLeft < 1) padLeft = 1;
 
@@ -201,7 +403,6 @@ void VeKhungNhanVien(const string& tieuDe) {
     textcolor(11);
 }
 
-// Hien thi so luong nhan vien hien co trong danh sach
 void HienSoLuongNhanVien(int soLuong) {
     XoaDongNV(KHUNG_NV_Y + 5);
     gotoxy(KHUNG_NV_X + 4, KHUNG_NV_Y + 5);
@@ -210,7 +411,6 @@ void HienSoLuongNhanVien(int soLuong) {
     textcolor(11);
 }
 
-// Hien thong bao loi khi danh sach da dat gioi han 500 nhan vien
 void HienThongBaoDayNhanVien() {
     XoaDongNV(KHUNG_NV_Y + 20);
     gotoxy(KHUNG_NV_X + 4, KHUNG_NV_Y + 20);
@@ -225,7 +425,6 @@ void HienThongBaoDayNhanVien() {
     ShowConsoleCursor(false);
 }
 
-// Hien thi Form nhap thong tin Nhan Vien voi thuat toan can giua chuoi trong [ ] va tinh toa do con tro nhap nhay
 void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro, const string& thongBao) {
     const string nhan[] = {
         "1. Ma nhan vien (toi da 5 ky tu)",
@@ -238,7 +437,6 @@ void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro, const 
 
     int padLeftSelected = 0;
 
-    // In 4 o nhap thong tin nhan vien
     for (int i = 0; i < 4; i++) {
         XoaDongNV(dong[i]);
         gotoxy(KHUNG_NV_X + 4, dong[i]);
@@ -248,21 +446,18 @@ void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro, const 
         gotoxy(O_NHAP_NV_X, dong[i]);
         textcolor(oDangChon == i ? 15 : 11);
 
-        // THUAT TOAN CAN GIUA CHUOI TRONG KHUNG [ ]
         string txt = giaTri[i].substr(0, RONG_O_NHAP);
         int len = (int)txt.length();
-        int padLeft = (RONG_O_NHAP - len) / 2;          // Khoang trang ben trai
-        int padRight = RONG_O_NHAP - len - padLeft;     // Khoang trang ben phai
+        int padLeft = (RONG_O_NHAP - len) / 2;
+        int padRight = RONG_O_NHAP - len - padLeft;
 
         if (oDangChon == i) {
             padLeftSelected = padLeft;
         }
 
-        // In chuoi duoc chia deu khoang trang 2 ben -> Chuoi nam chinh giua [ ]
         cout << "[ " << string(padLeft, ' ') << txt << string(padRight, ' ') << " ]";
     }
 
-    // In Nut Luu (Highlight neu dang duoc truyen focus)
     XoaDongNV(20);
     gotoxy(KHUNG_NV_X + 33, 20);
     if (oDangChon == 4) textcolor(31);
@@ -270,7 +465,6 @@ void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro, const 
     cout << "[ LUU NHAN VIEN - ENTER / F2 ]";
     textcolor(11);
 
-    // In dong thong bao loi validation (neu co)
     XoaDongNV(22);
     if (!thongBao.empty()) {
         gotoxy(KHUNG_NV_X + 4, 22);
@@ -279,22 +473,18 @@ void HienFormNhanVien(const NhanVien& nv, int oDangChon, int viTriConTro, const 
         textcolor(11);
     }
 
-    // Thanh huong dan thao tac o day khung
     XoaDongNV(24);
     gotoxy(KHUNG_NV_X + 4, 24);
     textcolor(10);
     cout << "[Len/Xuong/Tab: Chuyen o | Trai/Phai: Sua | Enter/F2: Luu | ESC: Huy & Ve Menu]";
     textcolor(11);
 
-    // Thiet lap con tro console nhap nhay di theo vi tri ky tu trong o dang chon
     ShowConsoleCursor(oDangChon < 4);
     if (oDangChon < 4) {
-        // Con tro nhap nhay chay theo vi tri chinh giua cua chuoi
         gotoxy(O_NHAP_NV_X + 2 + padLeftSelected + viTriConTro, dong[oDangChon]);
     }
 }
 
-// Hien thi bang danh sach nhan vien phan trang
 void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
     VeKhungNhanVien("DANH SACH NHAN VIEN KHO");
 
@@ -307,7 +497,6 @@ void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
     const int bangX = KHUNG_NV_X + 6;
     const string vien = VienBang();
 
-    // In Header cua Bang
     textcolor(14);
     gotoxy(bangX, 7); cout << vien;
     textcolor(11);
@@ -315,8 +504,7 @@ void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
     textcolor(14);
     gotoxy(bangX, 9); cout << vien;
 
-    // In cac dong du lieu theo trang
-    int pageSize = SO_NHAN_VIEN_MOI_TRANG; // Su dung hang so dong bo (12 dong)
+    int pageSize = SO_NHAN_VIEN_MOI_TRANG;
     for (int i = 0; i < pageSize; i++) {
         int viTri = trang * pageSize + i;
         string cot[5];
@@ -333,18 +521,15 @@ void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
         cout << DongBang(cot);
     }
 
-    // In duong vien duoi bang
     textcolor(14);
     gotoxy(bangX, 22); cout << vien;
 
-    // In chi so phan trang
     int soTrang = soLuong == 0 ? 1 : (soLuong + pageSize - 1) / pageSize;
     string phanTrang = "[ Trang " + to_string(trang + 1) + " / " + to_string(soTrang) + " ]";
     gotoxy(KHUNG_NV_X + (KHUNG_NV_RONG - (int)phanTrang.size()) / 2, 23);
     textcolor(14);
     cout << phanTrang;
 
-    // Thanh huong dan di chuyen trang
     gotoxy(KHUNG_NV_X + 4, 24);
     textcolor(10);
     cout << "[Trai/Phai, Up/Down: Chuyen trang | ESC/Enter: Quay ve Menu]";
@@ -353,108 +538,124 @@ void HienBangNhanVien(const NhanVien* const ds[], int soLuong, int trang) {
 }
 
 // ==========================================================
-// PHAN 5: THOAT CHUONG TRINH & CONTROLLER MENU CHINH
+// PHAN 6: BO NAO TRUNG TAM DIEU KHIEN MENU & SWITCH CASE
 // ==========================================================
 
-// Giao dien va hieu ung thoat ung dung
-void GiaoDienThoatChuongTrinh() {
-    system("cls");
-    int boxX = 22, boxY = 5, boxW = 60, boxH = 12;
-    drawBox(boxX, boxY, boxW, boxH, 14);
-
-    textcolor(11);
-    gotoxy(boxX + 18, boxY + 2);
-    cout << "THONG BAO HE THONG";
-
-    textcolor(14);
-    gotoxy(boxX + 4, boxY + 3);
-    for (int i = 0; i < boxW - 7; i++) cout << "~";
-
-    textcolor(10);
-    gotoxy(boxX + 11, boxY + 5);
-    cout << "CAM ON BAN DA SU DUNG HE THONG!";
-    
-    textcolor(11);
-    gotoxy(boxX + 15, boxY + 7);
-    cout << "CHUC BAN MOT NGAY TOT LAM!";
-
-    textcolor(14);
-    gotoxy(boxX + 12, boxY + 9);
-    cout << "Dang dong ung dung va luu du lieu";
-    
-    for (int i = 0; i < 4; i++) {
-        Sleep(500);
-        cout << ".";
-    }
-
-    textcolor(10);
-    gotoxy(boxX + 17, boxY + 10);
-    cout << "HOAN TAT! HEN GAP LAI.";
-    
-    Sleep(1500);
-    system("cls");
-    exit(0);
-}
-
-// Ham dieu khien menu chinh (Menu Controller)
 void menuController(DanhSachNhanVien &dsNV, TreeVatTu &root) {
-    system("mode con cols=120 lines=35");
+    system("mode con cols=120 lines=32");
     ShowConsoleCursor(false);
-    system("cls");            
-    
+
+    showSplashScreen();
+
+    system("cls");
     drawFrame();
     printStaticText();
+    veKhungPhuMenuChinh();
     
     int selectedIndex = 0; 
     bool isRunning = true; 
 
-    // Vong lap dieu khien Menu bang phat hien phim Mui ten va Enter
     while (isRunning) {
         printMenuItems(selectedIndex); 
-        char key = _getch(); 
+
+        int key = _getch(); 
         
-        if (key == -32 || key == 224) { 
+        if (key == -32 || key == 224 || key == 0) { 
             key = _getch(); 
-            if (key == 72) { // Mui ten Up
-                selectedIndex--; 
+            
+            if (key == 72) {
+                selectedIndex--;
                 if (selectedIndex < 0) selectedIndex = NUM_ITEMS - 1; 
-            } else if (key == 80) { // Mui ten Down
+            } else if (key == 80) {
                 selectedIndex++; 
                 if (selectedIndex >= NUM_ITEMS) selectedIndex = 0; 
             }
         } 
-        else if (key == 13) { // Enter -> Kich hoat chuc nang duoc chon
-            system("cls");           
-            ShowConsoleCursor(true); 
-            
+        else if (key == 13) {
             switch (selectedIndex) {
-                case 0: break;
-                case 1: break;
+                case 0:
+                case 1:
+                    break;
                 case 2: 
+                    system("cls");
                     ThemNhanVien(dsNV);
                     break;
                 case 3: 
+                    system("cls");
                     InDanhSachNhanVien(dsNV);
                     break;
                 case 4: 
+                    system("cls");
                     giaodienLapHoaDon(dsNV, root);
                     break;
                 case 5: 
+                    system("cls");
                     giaodienInHoaDon(dsNV, root);
                     break;
-                case 6: break;
-                case 7: break;
-                case 8: break;
-                case 9:
-                    GiaoDienThoatChuongTrinh();
+                case 6:
                     break;
+                case 7: // Cau h: Top 10 vat tu doanh thu cao nhat
+                    giaodienTop10VatTu(dsNV, root);
+                    break;
+                case 8:
+                    break;
+                case 9: {
+                    int offsetX = getDynamicOffsetX();
+                    int confirmX = offsetX + 6;
+                    int confirmY = OFFSET_Y + 17;
+                    int chonThoat = 1;
+                    bool daXacNhan = false;
+
+                    while (!daXacNhan) {
+                        gotoxy(confirmX, confirmY);
+                        textcolor(14);
+                        cout << "Ban co chac chan muon thoat chuong trinh?";
+
+                        gotoxy(confirmX + 6, confirmY + 2);
+                        textcolor(chonThoat == 0 ? 31 : 10);
+                        cout << (chonThoat == 0 ? " > [ CO ] < " : "   [ CO ]   ");
+
+                        gotoxy(confirmX + 24, confirmY + 2);
+                        textcolor(chonThoat == 1 ? 79 : 12);
+                        cout << (chonThoat == 1 ? " > [ KHONG ] < " : "   [ KHONG ]   ");
+
+                        int c = _getch();
+                        if (c == -32 || c == 224 || c == 0) {
+                            c = _getch();
+                            if (c == 75 || c == 77) chonThoat = 1 - chonThoat;
+                        } else if (c == 27) {
+                            chonThoat = 1;
+                            daXacNhan = true;
+                        } else if (c == 13) {
+                            daXacNhan = true;
+                        }
+                    }
+
+                    if (chonThoat == 0) {
+                        system("cls");
+                        drawBox(offsetX + 18, 10, 62, 7, 10, true);
+                        gotoxy(offsetX + 24, 13);
+                        textcolor(14);
+                        cout << "Cam on ban da su dung chuong trinh! Hen gap lai.";
+                        textcolor(15);
+                        Sleep(3000);
+                        isRunning = false;
+                    } else {
+                        textcolor(7);
+                        gotoxy(confirmX, confirmY);     cout << string(50, ' ');
+                        gotoxy(confirmX, confirmY + 2); cout << string(50, ' ');
+                        textcolor(15);
+                    }
+                    break;
+                }
             }
             
             if (isRunning) {
                 ShowConsoleCursor(false); 
-                system("cls");            
-                drawFrame();              
-                printStaticText();        
+                system("cls");
+                drawFrame();
+                printStaticText();
+                veKhungPhuMenuChinh();
             }
         }
     }

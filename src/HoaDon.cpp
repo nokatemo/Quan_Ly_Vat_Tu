@@ -15,7 +15,7 @@
 using namespace std;
 
 // =========================================================
-// PHAN 1: CAC HAM BO TRO XU LY DANH SACH CHI TIET HOA DON
+// PHAN 1: MODULE LOGIC XU LY DANH SACH LIEN KET & NGHIEP VU
 // =========================================================
 
 // Tao mot node chi tiet hoa don moi
@@ -27,7 +27,7 @@ NodeCTHD* TaoNodeCTHD(ChiTietHoaDon ct) {
     return p;
 }
 
-// Them chi tiet hoa don vao dau danh sach lien ket
+// Them chi tiet hoa don vao dau danh sach lien ket don
 void ThemCTHD(ListCTHD &dscthd, ChiTietHoaDon ct) {
     NodeCTHD* p = TaoNodeCTHD(ct);
     if (p == NULL) return;
@@ -39,36 +39,36 @@ void ThemCTHD(ListCTHD &dscthd, ChiTietHoaDon ct) {
 void XoaCTHDTrongDSTam(ListCTHD &dscthd, string maVT) {
     if (dscthd == NULL) return;
 
-    NodeCTHD* kieu = dscthd;
-    NodeCTHD* bfkieu = NULL;
+    NodeCTHD* hienTai = dscthd;
+    NodeCTHD* truocDo = NULL;
 
-    while (kieu != NULL && kieu->data.MAVT != maVT) {
-        bfkieu = kieu;
-        kieu = kieu->next;
+    while (hienTai != NULL && hienTai->data.MAVT != maVT) {
+        truocDo = hienTai;
+        hienTai = hienTai->next;
     }
 
-    if (kieu == NULL) return;
+    if (hienTai == NULL) return;
 
-    if (bfkieu == NULL) {
+    if (truocDo == NULL) {
         dscthd = dscthd->next;
     } else {
-        bfkieu->next = kieu->next;
+        truocDo->next = hienTai->next;
     }
 
-    delete kieu;
+    delete hienTai;
 }
 
-// Giai phong bo nho danh sach lien ket chi tiet hoa don
+// Giai phong toan bo bo nho danh sach chi tiet hoa don
 void GiaiPhongDSCTHD(ListCTHD &dscthd) {
     while (dscthd != NULL) {
-        NodeCTHD *temp = dscthd;
+        NodeCTHD* tam = dscthd;
         dscthd = dscthd->next;
-        delete temp;
+        delete tam;
     }
     dscthd = NULL;
 }
 
-// Kiem tra vat tu da ton tai trong gio hang/hoa don tam hay chua
+// Kiem tra vat tu da co trong hoa don tam hay chua
 bool KiemTraTrungVatTuTrongGio(ListCTHD head, const string& maVT) {
     NodeCTHD* p = head;
     while (p != NULL) {
@@ -78,11 +78,51 @@ bool KiemTraTrungVatTuTrongGio(ListCTHD head, const string& maVT) {
     return false;
 }
 
+// Kiem tra so hoa don da ton tai trong toan bo he thong hay chua
+bool KiemTraTrungSoHoaDon(const DanhSachNhanVien &dsNV, const string &soHD) {
+    for (int i = 0; i < dsNV.soLuong; i++) {
+        NodeHoaDon* pHD = dsNV.ds[i]->dshd;
+        while (pHD != NULL) {
+            if (pHD->data.soHD == soHD) return true;
+            pHD = pHD->next;
+        }
+    }
+    return false;
+}
+
+// Tinh tong so mat hang va tong thanh tien (da bao gom VAT) cua mot hoa don
+void TinhTongHoaDon(ListCTHD dscthd, int &tongSoMatHang, double &tongTien) {
+    tongSoMatHang = 0;
+    tongTien = 0;
+    NodeCTHD* p = dscthd;
+    while (p != NULL) {
+        tongSoMatHang++;
+        tongTien += p->data.soLuong * p->data.donGia * (1.0 + p->data.VAT / 100.0);
+        p = p->next;
+    }
+}
+
+// Cap nhat so luong ton kho tren cay BST sau khi chot luu hoa don
+void CapNhatTonKhoSauKhiLuuHD(TreeVatTu &root, const HoaDon &hd) {
+    NodeCTHD* pCT = hd.dscthd;
+    while (pCT != NULL) {
+        NodeVatTu* nodeVT = TimKiemVatTu(root, pCT->data.MAVT);
+        if (nodeVT != NULL) {
+            if (hd.loai == 'N') {
+                nodeVT->data.soLuongTon += pCT->data.soLuong;
+            } else if (hd.loai == 'X') {
+                nodeVT->data.soLuongTon -= pCT->data.soLuong;
+            }
+        }
+        pCT = pCT->next;
+    }
+}
+
 // =========================================================
-// PHAN 2: CAC HAM XU LY FILE (HOADON.TXT)
+// PHAN 2: MODULE XU LY DOC / GHI FILE (HOADON.TXT)
 // =========================================================
 
-// Luu tat ca hoa don cua nhan vien ra file HoaDon.txt
+// Ghi toan bo danh sach hoa don cua nhan vien ra file HoaDon.txt
 void LuuFileHoaDon(DanhSachNhanVien dsNV) {
     ofstream f("HoaDon.txt", ios::out);
     if (!f.is_open()) return;
@@ -170,7 +210,7 @@ void DocFileHoaDon(DanhSachNhanVien &dsNV) {
         string maNV, strSoHD;
         getline(ssNV, maNV, '|');
         getline(ssNV, strSoHD, '|');
-        
+
         if (strSoHD.empty()) continue;
         int soLuongHD = 0;
         try { soLuongHD = stoi(strSoHD); } catch (...) { continue; }
@@ -242,83 +282,276 @@ void DocFileHoaDon(DanhSachNhanVien &dsNV) {
 }
 
 // =========================================================
-// PHAN 3: UI, HAM NHAP LINH HOAT VA BANG CHON VAT TU
+// PHAN 3: MODULE GIAO DIEN DUNG CHUNG & O NHAP CAN GIUA
 // =========================================================
 
 namespace {
-    const int KHUNG_HD_X = 12;
-    const int KHUNG_HD_Y = 1;
-    const int KHUNG_HD_RONG = 98;
-    const int KHUNG_HD_CAO = 26;
+    // Do rong ben trong cua cac o nhap don (dong nhat de tham my)
+    const int RONG_O_NHAP_DON = 22;
+    // Do rong ben trong cua cac o ngay / thang / nam / loai hoa don
+    const int RONG_O_NHAP_NGAY = 10;
 
-    // Xoa mot dong trong khung hoa don
-    void XoaDongHD(int dong, int chieuRong = KHUNG_HD_RONG - 4) {
-        clearLine(KHUNG_HD_X + 2, dong, chieuRong);
+    // Dinh dang so tien co dau phay ngan cach hang nghin (VD: 11,000,000)
+    string DinhDangTienHD(double soTien) {
+        long long giaTri = (long long)(soTien + 0.5);
+        string s = to_string(giaTri);
+        string ketQua = "";
+        int dem = 0;
+        for (int i = (int)s.length() - 1; i >= 0; i--) {
+            ketQua = s[i] + ketQua;
+            dem++;
+            if (dem % 3 == 0 && i > 0) {
+                ketQua = "," + ketQua;
+            }
+        }
+        return ketQua;
     }
 
-    // In tieu de va duong ke ngang can giua khung
-    void InIntroBanner(int boxX, int boxY, string titleText, int boxW) {
-        int padLeft = (boxW - (int)titleText.length()) / 2;
-        if (padLeft < 1) padLeft = 1;
+    // Dinh dang ngay thang nam dd/mm/yyyy doc lap voi co cout (tranh loi dao so)
+    string DinhDangNgayHD(int ngay, int thang, int nam) {
+        string sNgay  = (ngay < 10 ? "0" : "") + to_string(ngay);
+        string sThang = (thang < 10 ? "0" : "") + to_string(thang);
+        return sNgay + "/" + sThang + "/" + to_string(nam);
+    }
 
-        textcolor(14); 
-        gotoxy(boxX + 2, boxY + 1); 
-        for (int i = 0; i < boxW - 3; i++) cout << "=";
+    // Ve khung vien doi gon gang cho cac chuc nang chi tiet
+    void VeKhungChucNangHD(const string &tieuDeChinh, int chieuCao = 24) {
+        int offsetX = getDynamicOffsetX();
+        system("cls");
+        drawBox(offsetX, OFFSET_Y, WIDTH + 1, chieuCao, 6, true);
 
-        gotoxy(boxX + padLeft, boxY + 2);
-        textcolor(11); 
-        cout << titleText;
-
+        int tieuDeX = offsetX + (WIDTH - (int)tieuDeChinh.length()) / 2;
+        gotoxy(tieuDeX, OFFSET_Y + 1);
         textcolor(14);
-        gotoxy(boxX + 2, boxY + 3); 
-        for (int i = 0; i < boxW - 3; i++) cout << "=";
-        textcolor(11);
+        cout << tieuDeChinh;
+
+        textcolor(6);
+        gotoxy(offsetX, OFFSET_Y + 2);
+        cout << char(204) << string(WIDTH - 1, char(205)) << char(185);
+        textcolor(15);
     }
 
-    // Ham nhap chuoi linh hoat: ho tro ESC de huy va quay ve Menu bat ky luc nao
-    bool NhapInputESC(int x, int y, string &outStr, size_t maxLen, bool inHoa = false, bool chiSo = false) {
-        ShowConsoleCursor(true);
+    // In thanh huong dan phim tat o day khung
+    void InThanhHuongDanHD(int x, int y, const string &noiDung) {
+        clearLine(x, y, 93);
         gotoxy(x, y);
-        cout << outStr << flush;
-        size_t pos = outStr.length();
+        textcolor(11); cout << "Dieu khien: ";
+        textcolor(7);  cout << noiDung;
+        textcolor(15);
+    }
 
+    // Hien thong bao loi hoac thanh cong tai dong chi dinh
+    void InThongBaoHD(int x, int y, const string &thongBao, int mauChu = 12) {
+        clearLine(x, y, 92);
+        gotoxy(x, y);
+        textcolor(mauChu);
+        cout << thongBao;
+        textcolor(15);
+    }
+
+    // Ve mot o nhap [ ... ] voi noi dung can giua, an con tro va chi to xanh phan chu da nhap
+    void VeONhapCanGiua(int boxStartX, int y, int innerWidth, const string &noiDung, bool dangChon) {
+        string txt = noiDung.substr(0, innerWidth);
+        int len = (int)txt.length();
+        int padLeft = (innerWidth - len) / 2;
+        int padRight = innerWidth - len - padLeft;
+
+        gotoxy(boxStartX, y);
+        textcolor(dangChon ? 14 : 11);
+        cout << "[";
+
+        if (dangChon) {
+            if (len == 0) {
+                int leftEmpty = (innerWidth - 1) / 2;
+                int rightEmpty = innerWidth - 1 - leftEmpty;
+                textcolor(15); cout << string(leftEmpty, ' ');
+                textcolor(31); cout << " ";
+                textcolor(15); cout << string(rightEmpty, ' ');
+            } else {
+                textcolor(15); cout << string(padLeft, ' ');
+                textcolor(31); cout << txt;
+                textcolor(15); cout << string(padRight, ' ');
+            }
+        } else {
+            textcolor(15);
+            cout << string(padLeft, ' ') << txt << string(padRight, ' ');
+        }
+
+        textcolor(dangChon ? 14 : 11);
+        cout << "]";
+        textcolor(15);
+        ShowConsoleCursor(false);
+    }
+
+    // Nhap chuoi trong o ngoac vuong can giua, ho tro ESC va Backspace
+    bool NhapChuoiCanGiua(int boxStartX, int y, int innerWidth, string &ketQua,
+                          size_t doDaiToiDa, bool vietHoa = false,
+                          bool chiNhapSo = false, bool choPhepDauCham = false) {
         while (true) {
-            gotoxy(x + (int)pos, y);
-            int c = _getch();
+            VeONhapCanGiua(boxStartX, y, innerWidth, ketQua, true);
+            int phim = _getch();
 
-            if (c == 27) { // ESC -> Huy va thoat ngay ve Menu
+            if (phim == 27) { // ESC -> Huy nhap
+                VeONhapCanGiua(boxStartX, y, innerWidth, ketQua, false);
                 ShowConsoleCursor(false);
                 return false;
             }
-            if (c == 13) { // Enter -> Ket thuc nhap
+            if (phim == 13) { // ENTER -> Xac nhan
+                VeONhapCanGiua(boxStartX, y, innerWidth, ketQua, false);
                 ShowConsoleCursor(false);
                 return true;
             }
-            if (c == 8) { // Backspace -> Xoa ky tu cuoi
-                if (pos > 0) {
-                    outStr.erase(pos - 1, 1);
-                    pos--;
-                    gotoxy(x + (int)pos, y);
-                    cout << " " << flush;
-                    gotoxy(x + (int)pos, y);
+            if (phim == 8) { // Backspace -> Xoa ky tu cuoi va tu dong can giua lai
+                if (!ketQua.empty()) {
+                    ketQua.pop_back();
                 }
                 continue;
             }
-            if (c == 0 || c == 224 || c == -32) {
-                _getch(); // Bo qua cac phim mui ten hoac phim chuc nang
+            if (phim == 0 || phim == 224 || phim == -32) {
+                _getch(); // Bo qua phim mui ten
                 continue;
             }
 
-            if (outStr.length() < maxLen && c >= 32 && c <= 126) {
-                char ch = (char)c;
-                if (chiSo && !isdigit(ch)) continue;
-                if (inHoa) ch = (char)toupper(ch);
-
-                outStr.insert(pos, 1, ch);
-                pos++;
-                cout << ch << flush;
+            if (ketQua.length() < doDaiToiDa && phim >= 32 && phim <= 126) {
+                char kyTu = (char)phim;
+                if (chiNhapSo && !isdigit((unsigned char)kyTu) && !(choPhepDauCham && kyTu == '.')) {
+                    continue;
+                }
+                if (vietHoa) kyTu = (char)toupper((unsigned char)kyTu);
+                ketQua += kyTu;
             }
         }
+    }
+
+    // Ve khung bang 8 cot chi tiet hoa don (Tong rong = 93 ky tu)
+    // Cot: STT(4) | Ma VT(9) | Ten Vat Tu(24) | DVT(7) | SL(6) | Don Gia(12) | VAT(6) | Thanh Tien(16)
+    void VeKhungBangChiTietHD(int boxX, int tableY, int soDongHienThi) {
+        textcolor(3);
+        gotoxy(boxX, tableY);
+        cout << char(218) << string(4, char(196))  << char(194)
+             << string(9, char(196))  << char(194)
+             << string(24, char(196)) << char(194)
+             << string(7, char(196))  << char(194)
+             << string(6, char(196))  << char(194)
+             << string(12, char(196)) << char(194)
+             << string(6, char(196))  << char(194)
+             << string(16, char(196)) << char(191);
+
+        gotoxy(boxX, tableY + 1);
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << left  << setw(4)  << " STT";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << left  << setw(9)  << " Ma VT";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << left  << setw(24) << " Ten Vat Tu";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << left  << setw(7)  << " DVT";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << right << setw(5)  << "SL" << " ";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << right << setw(11) << "Don Gia" << " ";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << right << setw(5)  << "VAT" << " ";
+        textcolor(3);  cout << char(179);
+        textcolor(14); cout << right << setw(15) << "Thanh Tien" << " ";
+        textcolor(3);  cout << char(179);
+
+        gotoxy(boxX, tableY + 2);
+        textcolor(3);
+        cout << char(195) << string(4, char(196))  << char(197)
+             << string(9, char(196))  << char(197)
+             << string(24, char(196)) << char(197)
+             << string(7, char(196))  << char(197)
+             << string(6, char(196))  << char(197)
+             << string(12, char(196)) << char(197)
+             << string(6, char(196))  << char(197)
+             << string(16, char(196)) << char(180);
+
+        for (int i = 0; i < soDongHienThi; i++) {
+            gotoxy(boxX, tableY + 3 + i);
+            textcolor(3);
+            cout << char(179) << string(4, ' ')  << char(179)
+                 << string(9, ' ')  << char(179)
+                 << string(24, ' ') << char(179)
+                 << string(7, ' ')  << char(179)
+                 << string(6, ' ')  << char(179)
+                 << string(12, ' ') << char(179)
+                 << string(6, ' ')  << char(179)
+                 << string(16, ' ') << char(179);
+        }
+
+        gotoxy(boxX, tableY + 3 + soDongHienThi);
+        textcolor(3);
+        cout << char(192) << string(4, char(196))  << char(193)
+             << string(9, char(196))  << char(193)
+             << string(24, char(196)) << char(193)
+             << string(7, char(196))  << char(193)
+             << string(6, char(196))  << char(193)
+             << string(12, char(196)) << char(193)
+             << string(6, char(196))  << char(193)
+             << string(16, char(196)) << char(217);
+        textcolor(15);
+    }
+
+    // Do du lieu mot trang chi tiet hoa don vao khung bang 8 cot
+    void DoDuLieuBangChiTietHD(int boxX, int tableY, int soDongHienThi, ListCTHD dscthd,
+                               TreeVatTu root, int trangHienTai) {
+        int viTriBatDau = (trangHienTai - 1) * soDongHienThi;
+        NodeCTHD* pCurr = dscthd;
+        for (int k = 0; k < viTriBatDau && pCurr != NULL; k++) {
+            pCurr = pCurr->next;
+        }
+
+        for (int i = 0; i < soDongHienThi; i++) {
+            int rowY = tableY + 3 + i;
+            gotoxy(boxX, rowY);
+
+            if (pCurr != NULL) {
+                int stt = viTriBatDau + i + 1;
+                string tenVT = "N/A", dvt = "N/A";
+                NodeVatTu* nodeVT = TimKiemVatTu(root, pCurr->data.MAVT);
+                if (nodeVT != NULL) {
+                    tenVT = nodeVT->data.TENVT.substr(0, 22);
+                    dvt = nodeVT->data.DVT.substr(0, 5);
+                }
+
+                double thanhTien = pCurr->data.soLuong * pCurr->data.donGia * (1.0 + pCurr->data.VAT / 100.0);
+                string strDonGia = DinhDangTienHD(pCurr->data.donGia);
+                string strThanhTien = DinhDangTienHD(thanhTien);
+                string strVAT = to_string((int)pCurr->data.VAT) + "%";
+
+                textcolor(3);  cout << char(179);
+                textcolor(7);  cout << " " << left << setw(3) << stt;
+                textcolor(3);  cout << char(179);
+                textcolor(11); cout << " " << left << setw(8) << pCurr->data.MAVT;
+                textcolor(3);  cout << char(179);
+                textcolor(15); cout << " " << left << setw(23) << tenVT;
+                textcolor(3);  cout << char(179);
+                textcolor(7);  cout << " " << left << setw(6) << dvt;
+                textcolor(3);  cout << char(179);
+                textcolor(14); cout << right << setw(5) << pCurr->data.soLuong << " ";
+                textcolor(3);  cout << char(179);
+                textcolor(15); cout << right << setw(11) << strDonGia << " ";
+                textcolor(3);  cout << char(179);
+                textcolor(7);  cout << right << setw(5) << strVAT << " ";
+                textcolor(3);  cout << char(179);
+                textcolor(10); cout << right << setw(15) << strThanhTien << " ";
+                textcolor(3);  cout << char(179);
+
+                pCurr = pCurr->next;
+            } else {
+                textcolor(3);
+                cout << char(179) << string(4, ' ')  << char(179)
+                     << string(9, ' ')  << char(179)
+                     << string(24, ' ') << char(179)
+                     << string(7, ' ')  << char(179)
+                     << string(6, ' ')  << char(179)
+                     << string(12, ' ') << char(179)
+                     << string(6, ' ')  << char(179)
+                     << string(16, ' ') << char(179);
+            }
+        }
+        textcolor(15);
     }
 }
 
@@ -331,476 +564,428 @@ void ChuyenCayThanhMang(TreeVatTu root, VatTu ds[], int &n) {
     }
 }
 
-// Giao dien bang chon vat tu tu danh sach kho
+// Giao dien bang chon vat tu tu kho (Ke khung ASCII 5 cot chuan dep)
 bool ChonVatTuTuBang(TreeVatTu root, VatTu &vtChon) {
     VatTu ds[500];
-    int count = 0;
-    ChuyenCayThanhMang(root, ds, count);
+    int tongVatTu = 0;
+    ChuyenCayThanhMang(root, ds, tongVatTu);
 
-    if (count == 0) return false;
+    if (tongVatTu == 0) return false;
 
-    system("cls");
-    drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
+    int offsetX = getDynamicOffsetX();
+    int boxX = offsetX + 3;
+    int tableY = OFFSET_Y + 4;
 
-    InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "DANH MUC VAT TU KHO", KHUNG_HD_RONG);
+    VeKhungChucNangHD("DANH MUC VAT TU TRONG KHO", 24);
+    ShowConsoleCursor(false);
 
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-    textcolor(11);
-    cout << left << setw(5) << "STT" << "| "
-         << setw(10) << "Ma VT" << "| "
-         << setw(35) << "Ten Vat Tu" << "| "
-         << setw(10) << "DVT" << "| "
-         << "Ton Kho";
+    // Ve khung bang 5 cot (Tong rong = 93 ky tu: 6 + 12 + 41 + 12 + 16 + 6 vien = 93)
+    textcolor(3);
+    gotoxy(boxX, tableY);
+    cout << char(218) << string(6, char(196))  << char(194)
+         << string(12, char(196)) << char(194)
+         << string(41, char(196)) << char(194)
+         << string(12, char(196)) << char(194)
+         << string(16, char(196)) << char(191);
 
-    gotoxy(KHUNG_HD_X + 2, KHUNG_HD_Y + 6);
-    cout << "---------------------------------------------------------------------------------------------";
+    gotoxy(boxX, tableY + 1);
+    textcolor(3);  cout << char(179);
+    textcolor(14); cout << left  << setw(6)  << " STT";
+    textcolor(3);  cout << char(179);
+    textcolor(14); cout << left  << setw(12) << " Ma VT";
+    textcolor(3);  cout << char(179);
+    textcolor(14); cout << left  << setw(41) << " Ten Vat Tu";
+    textcolor(3);  cout << char(179);
+    textcolor(14); cout << left  << setw(12) << " DVT";
+    textcolor(3);  cout << char(179);
+    textcolor(14); cout << right << setw(15) << "Ton Kho" << " ";
+    textcolor(3);  cout << char(179);
+
+    gotoxy(boxX, tableY + 2);
+    textcolor(3);
+    cout << char(195) << string(6, char(196))  << char(197)
+         << string(12, char(196)) << char(197)
+         << string(41, char(196)) << char(197)
+         << string(12, char(196)) << char(197)
+         << string(16, char(196)) << char(180);
+
+    int pageSize = 12;
+    gotoxy(boxX, tableY + 3 + pageSize);
+    textcolor(3);
+    cout << char(192) << string(6, char(196))  << char(193)
+         << string(12, char(196)) << char(193)
+         << string(41, char(196)) << char(193)
+         << string(12, char(196)) << char(193)
+         << string(16, char(196)) << char(217);
 
     int selectedIdx = 0;
     int topIdx = 0;
-    int pageSize = 12;
-    int rowWidthMax = KHUNG_HD_RONG - 5;
 
-    ShowConsoleCursor(false);
-
-    // In mot dong vat tu trong bang chon
-    auto InDongVatTu = [&](int idx, int printY, bool isSelected) {
-        stringstream ss;
-        ss << left << setw(5) << (idx + 1) << "| "
-           << setw(10) << ds[idx].MAVT << "| "
-           << setw(35) << ds[idx].TENVT << "| "
-           << setw(10) << ds[idx].DVT << "| "
-           << left << setw(10) << ds[idx].soLuongTon;
-           
-        string text = ss.str();
-        while (text.length() < (size_t)rowWidthMax) text += " ";
-
-        gotoxy(KHUNG_HD_X + 3, printY);
-        if (isSelected) textcolor(31); // Highlight dong dang chon
-        else textcolor(11);
-        cout << text;
-        textcolor(11); 
+    // In mot dong vat tu trong bang
+    auto InDongVatTu = [&](int idx, int rowY, bool dangChon) {
+        gotoxy(boxX, rowY);
+        if (idx < tongVatTu) {
+            string tenVT = ds[idx].TENVT.substr(0, 39);
+            if (dangChon) {
+                textcolor(3);  cout << char(179);
+                textcolor(31);
+                cout << " " << left << setw(5)  << (idx + 1)
+                     << " " << left << setw(12) << ds[idx].MAVT
+                     << " " << left << setw(41) << tenVT
+                     << " " << left << setw(12) << ds[idx].DVT
+                     << right << setw(15) << ds[idx].soLuongTon << " ";
+                textcolor(3);  cout << char(179);
+            } else {
+                textcolor(3);  cout << char(179);
+                textcolor(7);  cout << " " << left << setw(5)  << (idx + 1);
+                textcolor(3);  cout << char(179);
+                textcolor(11); cout << " " << left << setw(11) << ds[idx].MAVT;
+                textcolor(3);  cout << char(179);
+                textcolor(15); cout << " " << left << setw(40) << tenVT;
+                textcolor(3);  cout << char(179);
+                textcolor(7);  cout << " " << left << setw(11) << ds[idx].DVT;
+                textcolor(3);  cout << char(179);
+                textcolor(ds[idx].soLuongTon > 0 ? 10 : 12);
+                cout << right << setw(15) << ds[idx].soLuongTon << " ";
+                textcolor(3);  cout << char(179);
+            }
+        } else {
+            textcolor(3);
+            cout << char(179) << string(6, ' ')  << char(179)
+                 << string(12, ' ') << char(179)
+                 << string(41, ' ') << char(179)
+                 << string(12, ' ') << char(179)
+                 << string(16, ' ') << char(179);
+        }
+        textcolor(15);
     };
 
-    // Ve lai toan bo trang danh sach vat tu
+    // Ve lai ca trang vat tu
     auto VeTrang = [&]() {
         for (int i = 0; i < pageSize; i++) {
             int currIdx = topIdx + i;
-            int printY = KHUNG_HD_Y + 7 + i;
-            clearLine(KHUNG_HD_X + 3, printY, rowWidthMax);
-            if (currIdx < count) {
-                InDongVatTu(currIdx, printY, currIdx == selectedIdx);
-            }
+            InDongVatTu(currIdx, tableY + 3 + i, currIdx == selectedIdx);
         }
+        int tongTrang = (tongVatTu - 1) / pageSize + 1;
+        int trangHienTai = (topIdx / pageSize) + 1;
+        gotoxy(boxX + 75, tableY + 4 + pageSize);
         textcolor(14);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 20);
-        clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 20, rowWidthMax);
-        cout << "[Trang " << (topIdx / pageSize) + 1 << "/" << ((count - 1) / pageSize) + 1 << "]";
+        cout << "[Trang " << trangHienTai << "/" << tongTrang << "]   ";
+        textcolor(15);
     };
 
     VeTrang();
+    InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Len/Xuong: Chon VT | Trai/Phai: Chuyen trang | ENTER: Chon | ESC: Quay lai");
 
-    textcolor(10);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22);
-    cout << "[Mui ten Len/Xuong]: Di Chuyen Dong | [Mui ten Trai/Phai]: Chuyen Trang";
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 23);
-    cout << "[Enter]: Them Vat Tu Nay Vao Hoa Don | [ESC]: Huy Bo & Quay Lai";
-    textcolor(11);
-
-    // Vong lap dieu khien bang chon vat tu
     while (true) {
-        char key = _getch();
-        if (key == -32 || key == 224) {
+        int key = _getch();
+        if (key == -32 || key == 224 || key == 0) {
             key = _getch();
             int prevIdx = selectedIdx;
 
-            if (key == 72) { // Mui ten Len
-                if (selectedIdx > 0) selectedIdx--;
-            } else if (key == 80) { // Mui ten Xuong
-                if (selectedIdx < count - 1) selectedIdx++;
-            } else if (key == 75) { // Mui ten Trai (Lui trang)
-                if (topIdx > 0) {
-                    selectedIdx = max(0, selectedIdx - pageSize);
-                    topIdx = max(0, topIdx - pageSize);
-                    VeTrang();
-                    continue;
-                }
-            } else if (key == 77) { // Mui ten Phai (Tien trang)
-                if (topIdx + pageSize < count) {
-                    selectedIdx = min(count - 1, selectedIdx + pageSize);
-                    topIdx += pageSize;
-                    VeTrang();
-                    continue;
-                }
+            if (key == 72 && selectedIdx > 0) {
+                selectedIdx--;
+            } else if (key == 80 && selectedIdx < tongVatTu - 1) {
+                selectedIdx++;
+            } else if (key == 75 && topIdx > 0) {
+                selectedIdx = max(0, selectedIdx - pageSize);
+                topIdx = max(0, topIdx - pageSize);
+                VeTrang();
+                continue;
+            } else if (key == 77 && topIdx + pageSize < tongVatTu) {
+                selectedIdx = min(tongVatTu - 1, selectedIdx + pageSize);
+                topIdx += pageSize;
+                VeTrang();
+                continue;
             }
 
             if (prevIdx != selectedIdx) {
                 if (selectedIdx < topIdx || selectedIdx >= topIdx + pageSize) {
-                    if (selectedIdx < topIdx) topIdx = selectedIdx;
-                    else topIdx = selectedIdx - pageSize + 1;
+                    topIdx = (selectedIdx < topIdx) ? selectedIdx : (selectedIdx - pageSize + 1);
                     VeTrang();
                 } else {
-                    int prevY = KHUNG_HD_Y + 7 + (prevIdx - topIdx);
-                    InDongVatTu(prevIdx, prevY, false);
-
-                    int currY = KHUNG_HD_Y + 7 + (selectedIdx - topIdx);
-                    InDongVatTu(selectedIdx, currY, true);
+                    InDongVatTu(prevIdx, tableY + 3 + (prevIdx - topIdx), false);
+                    InDongVatTu(selectedIdx, tableY + 3 + (selectedIdx - topIdx), true);
                 }
             }
-        } else if (key == 13) { // Enter -> Lay vat tu duoc chon
+        } else if (key == 13) {
             vtChon = ds[selectedIdx];
             return true;
-        } else if (key == 27) { // ESC -> Huy chon
+        } else if (key == 27) {
             return false;
         }
     }
 }
 
 // =========================================================
-// PHAN 4: GIAO DIEN CAU E - LAP HOA DON NHAP / XUAT KHO
+// PHAN 4: MODULE GIAO DIEN CAU E - LAP HOA DON NHAP / XUAT
 // =========================================================
 
 void giaodienLapHoaDon(DanhSachNhanVien &dsNV, TreeVatTu &root) {
-    system("cls");
+    int offsetX = getDynamicOffsetX();
+    int boxX = offsetX + 3;
+
     HoaDon hdTam;
     hdTam.dscthd = NULL;
 
-    drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
-    InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "HE THONG LAP HOA DON NHAP / XUAT KHO", KHUNG_HD_RONG);
+    VeKhungChucNangHD("LAP HOA DON NHAP / XUAT KHO", 24);
+    InThanhHuongDanHD(boxX, OFFSET_Y + 22, "ENTER: Xac nhan nhap | ESC: Huy lap hoa don & quay ve Menu chinh");
 
-    textcolor(10);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 24);
-    cout << "[Luu y: Nhan ESC o bat ky o nhap nao de huy va thoat ve Menu]";
+    // ---------------------------------------------------------
+    // BUOC 1: NHAP MA NHAN VIEN & SO HOA DON (CON TRO CAN GIUA)
+    // ---------------------------------------------------------
+    drawBox(boxX, OFFSET_Y + 4, 93, 6, 3, false);
+    gotoxy(boxX + 3, OFFSET_Y + 4);
+    textcolor(14); cout << " BUOC 1: THONG TIN NHAN VIEN & SO HOA DON ";
 
-    // BUOC 1: NHAP MA NHAN VIEN LAP HOA DON
+    int oNhapBuoc1X = boxX + 29; // Toa do bat dau dau '[' cho ca 2 o nhap Buoc 1
+
+    gotoxy(boxX + 4, OFFSET_Y + 6);
+    textcolor(11); cout << "Ma Nhan Vien lap phieu : ";
+    VeONhapCanGiua(oNhapBuoc1X, OFFSET_Y + 6, RONG_O_NHAP_DON, "", false);
+
+    gotoxy(boxX + 4, OFFSET_Y + 8);
+    textcolor(11); cout << "So Hoa Don moi         : ";
+    VeONhapCanGiua(oNhapBuoc1X, OFFSET_Y + 8, RONG_O_NHAP_DON, "", false);
+
     int vtNV = -1;
     string maNV = "";
     while (true) {
-        clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 5, 88);
-        clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 6, 88);
-
-        textcolor(11);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-        cout << "1. Nhap Ma Nhan Vien: ";
-
+        clearLine(oNhapBuoc1X + RONG_O_NHAP_DON + 3, OFFSET_Y + 6, 35);
         maNV = "";
-        if (!NhapInputESC(KHUNG_HD_X + 25, KHUNG_HD_Y + 5, maNV, 10, true)) {
+        if (!NhapChuoiCanGiua(oNhapBuoc1X, OFFSET_Y + 6, RONG_O_NHAP_DON, maNV, 10, true)) {
             GiaiPhongDSCTHD(hdTam.dscthd);
             return;
         }
 
         vtNV = TimkiemNhanVien(dsNV, maNV);
         if (vtNV == -1) {
-            textcolor(12);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 6);
-            cout << "=> LOI: Ma NV '" << maNV << "' khong ton tai! Nhan phim bat ky de nhap lai...";
-            textcolor(11);
+            InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) Ma nhan vien '" + maNV + "' khong ton tai! Nhan phim bat ky de nhap lai...", 12);
             _getch();
+            clearLine(boxX + 4, OFFSET_Y + 18, 88);
         } else {
-            textcolor(10);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 6);
-            cout << "=> Nhan Vien: " << dsNV.ds[vtNV]->HO << " " << dsNV.ds[vtNV]->TEN;
-            textcolor(11);
+            gotoxy(oNhapBuoc1X + RONG_O_NHAP_DON + 4, OFFSET_Y + 6);
+            textcolor(10); cout << "-> NV: " << dsNV.ds[vtNV]->HO << " " << dsNV.ds[vtNV]->TEN;
+            textcolor(15);
             break;
         }
     }
 
-    // BUOC 2: NHAP SO HOA DON VA KIEM TRA TRUNG MA
     while (true) {
-        clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 8, 88);
-        clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 9, 88);
-
-        textcolor(11);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 8);
-        cout << "2. Nhap So Hoa Don: ";
-
+        clearLine(oNhapBuoc1X + RONG_O_NHAP_DON + 3, OFFSET_Y + 8, 35);
         string soHD = "";
-        if (!NhapInputESC(KHUNG_HD_X + 23, KHUNG_HD_Y + 8, soHD, 20, true)) {
+        if (!NhapChuoiCanGiua(oNhapBuoc1X, OFFSET_Y + 8, RONG_O_NHAP_DON, soHD, 20, true)) {
             GiaiPhongDSCTHD(hdTam.dscthd);
             return;
         }
 
         if (soHD.empty()) {
-            textcolor(12);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 9);
-            cout << "=> LOI: So HD khong duoc de trong! Nhan phim bat ky de nhap lai...";
-            textcolor(11);
+            InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) So hoa don khong duoc de trong! Nhan phim bat ky de nhap lai...", 12);
             _getch();
+            clearLine(boxX + 4, OFFSET_Y + 18, 88);
             continue;
         }
 
-        bool trunghd = false;
-        for (int i = 0; i < dsNV.soLuong; i++) {
-            NodeHoaDon* pHD = dsNV.ds[i]->dshd;
-            while (pHD != NULL) {
-                if (pHD->data.soHD == soHD) { trunghd = true; break; }
-                pHD = pHD->next;
-            }
-            if (trunghd) break;
-        }
-
-        if (trunghd) {
-            textcolor(12);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 9);
-            cout << "=> LOI: So HD '" << soHD << "' da ton tai! Nhan phim bat ky de nhap lai...";
-            textcolor(11);
+        if (KiemTraTrungSoHoaDon(dsNV, soHD)) {
+            InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) So hoa don '" + soHD + "' da ton tai! Vui long nhap ma khac...", 12);
             _getch();
+            clearLine(boxX + 4, OFFSET_Y + 18, 88);
         } else {
             hdTam.soHD = soHD;
-            textcolor(10);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 9);
-            cout << "=> So Hoa Don hop le!";
-            textcolor(11);
+            gotoxy(oNhapBuoc1X + RONG_O_NHAP_DON + 4, OFFSET_Y + 8);
+            textcolor(10); cout << "-> Hop le";
+            textcolor(15);
             break;
         }
     }
 
-    // BUOC 3: FORM NHAP NGAY, THANG, NAM LAP & LOAI HOA DON ('N' / 'X')
-    string strNgay = "", strThang = "", strNam = "", strLoai = "N";
-    int activeField = 0;
+    // ---------------------------------------------------------
+    // BUOC 2: NHAP NGAY LAP & LOAI HOA DON (4 O RONG BANG NHAU)
+    // ---------------------------------------------------------
+    drawBox(boxX, OFFSET_Y + 11, 93, 6, 3, false);
+    gotoxy(boxX + 3, OFFSET_Y + 11);
+    textcolor(14); cout << " BUOC 2: NGAY LAP & LOAI PHIEU ";
 
-    textcolor(11);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 11); cout << "3. Ngay Lap    : ";
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 12); cout << "4. Thang Lap   : ";
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 13); cout << "5. Nam Lap     : ";
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 14); cout << "6. Loai Hoa Don (N: Nhap kho / X: Xuat kho): ";
+    int oNgayX  = boxX + 32;
+    int oThangX = boxX + 47;
+    int oNamX   = boxX + 62;
 
-    textcolor(11);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 16);
-    cout << "[>>> ENTER DE XAC NHAN THONG TIN NGAY & LOAI HOA DON | ESC DE THOAT <<<]";
+    gotoxy(boxX + 4, OFFSET_Y + 13);
+    textcolor(11); cout << "Ngay lap (dd / mm / yyyy) : ";
+    gotoxy(oNgayX + RONG_O_NHAP_NGAY + 2, OFFSET_Y + 13);  textcolor(15); cout << " / ";
+    gotoxy(oThangX + RONG_O_NHAP_NGAY + 2, OFFSET_Y + 13); textcolor(15); cout << " / ";
+
+    gotoxy(boxX + 4, OFFSET_Y + 15);
+    textcolor(11); cout << "Loai hoa don (N / X)      : ";
+    gotoxy(oNgayX + RONG_O_NHAP_NGAY + 5, OFFSET_Y + 15);
+    textcolor(8); cout << "(N: Nhap kho  |  X: Xuat kho)";
+
+    InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Mui ten: Chuyen o | Backspace: Xoa | ENTER: Tiep tuc | ESC: Huy ve Menu");
+
+    string oNgayThangLoai[4] = { "", "", "", "N" };
+    const int gioiHanO[4] = { 2, 2, 4, 1 };
+    const int toaDoX[4]   = { oNgayX, oThangX, oNamX, oNgayX };
+    const int toaDoY[4]   = { OFFSET_Y + 13, OFFSET_Y + 13, OFFSET_Y + 13, OFFSET_Y + 15 };
+    int oDangChon = 0;
 
     while (true) {
-        clearLine(KHUNG_HD_X + 20, KHUNG_HD_Y + 11, 10);
-        clearLine(KHUNG_HD_X + 20, KHUNG_HD_Y + 12, 10);
-        clearLine(KHUNG_HD_X + 20, KHUNG_HD_Y + 13, 10);
-        clearLine(KHUNG_HD_X + 48, KHUNG_HD_Y + 14, 10);
-
-        gotoxy(KHUNG_HD_X + 20, KHUNG_HD_Y + 11); cout << strNgay;
-        gotoxy(KHUNG_HD_X + 20, KHUNG_HD_Y + 12); cout << strThang;
-        gotoxy(KHUNG_HD_X + 20, KHUNG_HD_Y + 13); cout << strNam;
-        gotoxy(KHUNG_HD_X + 48, KHUNG_HD_Y + 14); cout << strLoai;
-
-        if (activeField == 4) {
-            textcolor(31);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 16);
-            cout << "[>>> ENTER DE XAC NHAN THONG TIN NGAY & LOAI HOA DON | ESC DE THOAT <<<]";
-            textcolor(11);
-        } else {
-            textcolor(11);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 16);
-            cout << "[>>> ENTER DE XAC NHAN THONG TIN NGAY & LOAI HOA DON | ESC DE THOAT <<<]";
+        // Ve ca 4 o voi do rong trong bang nhau (RONG_O_NHAP_NGAY = 10) va to xanh phan chu da nhap
+        for (int i = 0; i < 4; i++) {
+            VeONhapCanGiua(toaDoX[i], toaDoY[i], RONG_O_NHAP_NGAY, oNgayThangLoai[i], i == oDangChon);
         }
 
-        ShowConsoleCursor(true);
-        if (activeField == 0) gotoxy(KHUNG_HD_X + 20 + strNgay.length(), KHUNG_HD_Y + 11);
-        else if (activeField == 1) gotoxy(KHUNG_HD_X + 20 + strThang.length(), KHUNG_HD_Y + 12);
-        else if (activeField == 2) gotoxy(KHUNG_HD_X + 20 + strNam.length(), KHUNG_HD_Y + 13);
-        else if (activeField == 3) gotoxy(KHUNG_HD_X + 48 + strLoai.length(), KHUNG_HD_Y + 14);
-        else if (activeField == 4) gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 16);
-
-        char c = _getch();
-
-        if (c == 27) { // ESC -> Thoat ve Menu
+        int phim = _getch();
+        if (phim == 27) {
+            ShowConsoleCursor(false);
             GiaiPhongDSCTHD(hdTam.dscthd);
             return;
         }
-
-        if (c == -32 || c == 224) { // Chuyen o nhap bang phim mui ten Up/Down
-            char key = _getch();
-            if (key == 72) activeField = (activeField - 1 + 5) % 5;
-            else if (key == 80) activeField = (activeField + 1) % 5;
+        if (phim == -32 || phim == 224 || phim == 0) {
+            phim = _getch();
+            if (phim == 75 || phim == 72) oDangChon = (oDangChon + 3) % 4;
+            else if (phim == 77 || phim == 80) oDangChon = (oDangChon + 1) % 4;
             continue;
         }
-
-        if (c == 8) { // Backspace -> Xoa ky tu trong field hien tai
-            if (activeField == 0 && !strNgay.empty()) strNgay.pop_back();
-            else if (activeField == 1 && !strThang.empty()) strThang.pop_back();
-            else if (activeField == 2 && !strNam.empty()) strNam.pop_back();
-            else if (activeField == 3 && !strLoai.empty()) strLoai.pop_back();
+        if (phim == 8) {
+            if (!oNgayThangLoai[oDangChon].empty()) oNgayThangLoai[oDangChon].pop_back();
             continue;
         }
-
-        if (c == 13) { // Enter -> Sang field tiep theo hoac xac nhan
-            if (activeField < 4) {
-                activeField++;
-            } else {
-                int ng = strNgay.empty() ? 0 : stoi(strNgay);
-                int th = strThang.empty() ? 0 : stoi(strThang);
-                int na = strNam.empty() ? 0 : stoi(strNam);
-
-                if (!ngayhople(ng, th, na)) {
-                    textcolor(12);
-                    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 18);
-                    cout << "=> LOI: Ngay " << ng << "/" << th << "/" << na << " khong hop le! Nhan phim bat ky de nhap lai...";
-                    textcolor(11);
-                    _getch();
-                    clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 18, 88);
-                    activeField = 0;
-                } else if (strLoai != "N" && strLoai != "X") {
-                    textcolor(12);
-                    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 18);
-                    cout << "=> LOI: Loai hoa don phai la 'N' hoac 'X'! Nhan phim bat ky de nhap lai...";
-                    textcolor(11);
-                    _getch();
-                    clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 18, 88);
-                    activeField = 3;
-                } else {
-                    hdTam.ngayLap.ngay = ng;
-                    hdTam.ngayLap.thang = th;
-                    hdTam.ngayLap.nam = na;
-                    hdTam.loai = strLoai[0];
-                    textcolor(10);
-                    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 18);
-                    cout << "=> Ngay lap & Loai hoa don [" << (hdTam.loai == 'N' ? "NHAP KHO" : "XUAT KHO") << "] hop le!";
-                    textcolor(11);
-                    _getch();
-                    break;
-                }
+        if (oDangChon < 3 && phim >= '0' && phim <= '9') {
+            if ((int)oNgayThangLoai[oDangChon].length() < gioiHanO[oDangChon]) {
+                oNgayThangLoai[oDangChon] += (char)phim;
+                if ((int)oNgayThangLoai[oDangChon].length() == gioiHanO[oDangChon]) oDangChon++;
             }
             continue;
         }
+        if (oDangChon == 3) {
+            char u = (char)toupper((unsigned char)phim);
+            if (u == 'N' || u == 'X') {
+                oNgayThangLoai[3] = string(1, u);
+                continue;
+            }
+        }
+        if (phim == 13) {
+            if (oNgayThangLoai[0].empty() || oNgayThangLoai[1].empty() || oNgayThangLoai[2].empty()) {
+                InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) Vui long nhap day du ngay, thang, nam truoc khi tiep tuc!", 12);
+                continue;
+            }
+            int ng = stoi(oNgayThangLoai[0]);
+            int th = stoi(oNgayThangLoai[1]);
+            int na = stoi(oNgayThangLoai[2]);
 
-        if (activeField == 0 && isdigit(static_cast<unsigned char>(c)) && strNgay.length() < 2) strNgay += c;
-        else if (activeField == 1 && isdigit(static_cast<unsigned char>(c)) && strThang.length() < 2) strThang += c;
-        else if (activeField == 2 && isdigit(static_cast<unsigned char>(c)) && strNam.length() < 4) strNam += c;
-        else if (activeField == 3) {
-            char u = toupper(static_cast<unsigned char>(c));
-            if (u == 'N' || u == 'X') strLoai = u;
-            else strLoai = "";
+            if (!ngayhople(ng, th, na)) {
+                InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) Ngay " + DinhDangNgayHD(ng, th, na) + " khong ton tai!", 12);
+                continue;
+            }
+            if (oNgayThangLoai[3] != "N" && oNgayThangLoai[3] != "X") {
+                InThongBaoHD(boxX + 4, OFFSET_Y + 18, "(!) Loai hoa don chi duoc nhap N (Nhap) hoac X (Xuat)!", 12);
+                oDangChon = 3;
+                continue;
+            }
+
+            hdTam.ngayLap.ngay = ng;
+            hdTam.ngayLap.thang = th;
+            hdTam.ngayLap.nam = na;
+            hdTam.loai = oNgayThangLoai[3][0];
+            ShowConsoleCursor(false);
+            break;
         }
     }
 
-    // BUOC 4: GIAO DIEN QUAN LY DANH SACH CHI TIET HOA DON TAM
+    // ---------------------------------------------------------
+    // BUOC 3: MAN HINH GIO HANG CHI TIET HOA DON & CHOT LUU
+    // ---------------------------------------------------------
     int menuSelected = 0;
     int currentPage = 1;
-    int pageSize = 6;
-    
+    const int pageSize = 6;
+    int tableY = OFFSET_Y + 5;
+
     while (true) {
         int totalItems = 0;
         double tongTien = 0;
-        NodeCTHD* pNode = hdTam.dscthd;
-        while (pNode != NULL) {
-            totalItems++;
-            tongTien += pNode->data.soLuong * pNode->data.donGia * (1.0 + pNode->data.VAT / 100.0);
-            pNode = pNode->next;
-        }
-        
+        TinhTongHoaDon(hdTam.dscthd, totalItems, tongTien);
+
         int totalPages = max(1, (totalItems + pageSize - 1) / pageSize);
         if (currentPage > totalPages) currentPage = totalPages;
 
-        system("cls");
-        drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
+        string loaiPhieuText = (hdTam.loai == 'N' ? "NHAP KHO" : "XUAT KHO");
+        VeKhungChucNangHD("CHI TIET HOA DON [" + hdTam.soHD + "] - " + loaiPhieuText, 24);
 
-        InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "HOA DON: " + hdTam.soHD + " | NV: " + dsNV.ds[vtNV]->TEN + " | LOAI: " + (hdTam.loai == 'N' ? "NHAP KHO" : "XUAT KHO"), KHUNG_HD_RONG);
+        gotoxy(boxX, OFFSET_Y + 3);
+        textcolor(11); cout << "Nhan vien: ";
+        textcolor(15); cout << dsNV.ds[vtNV]->HO << " " << dsNV.ds[vtNV]->TEN << " (" << dsNV.ds[vtNV]->MANV << ")";
 
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-        textcolor(11);
-        cout << left << setw(4) << "STT" << "| "
-             << setw(8) << "Ma VT" << "| "
-             << setw(22) << "Ten Vat Tu" << "| "
-             << setw(6) << "DVT" << "| "
-             << setw(5) << "SL" << "| "
-             << setw(11) << "Don Gia" << "| "
-             << setw(6) << "VAT" << "| "
-             << "Thanh Tien";
+        gotoxy(boxX + 55, OFFSET_Y + 3);
+        textcolor(11); cout << "Ngay lap: ";
+        textcolor(14); cout << DinhDangNgayHD(hdTam.ngayLap.ngay, hdTam.ngayLap.thang, hdTam.ngayLap.nam);
 
-        gotoxy(KHUNG_HD_X + 2, KHUNG_HD_Y + 6);
-        cout << "---------------------------------------------------------------------------------------------";
+        VeKhungBangChiTietHD(boxX, tableY, pageSize);
+        DoDuLieuBangChiTietHD(boxX, tableY, pageSize, hdTam.dscthd, root, currentPage);
 
-        // In danh sach cac mat hang trong hoa don tam theo phan trang
-        auto VeTrangItems = [&]() {
-            int startIndex = (currentPage - 1) * pageSize;
-            
-            NodeCTHD* pCurr = hdTam.dscthd;
-            for (int k = 0; k < startIndex && pCurr != NULL; k++) {
-                pCurr = pCurr->next;
-            }
+        int footerTableY = tableY + 3 + pageSize + 1;
+        gotoxy(boxX, footerTableY);
+        textcolor(11); cout << "TONG CONG TAM TINH: ";
+        textcolor(10); cout << DinhDangTienHD(tongTien) << " VND";
 
-            int printY = KHUNG_HD_Y + 7;
-            cout << fixed << setprecision(0);
+        gotoxy(boxX + 78, footerTableY);
+        textcolor(14); cout << "[Trang " << currentPage << "/" << totalPages << "]";
 
-            for (int i = 0; i < pageSize; i++) {
-                gotoxy(KHUNG_HD_X + 3, printY + i);
-                clearLine(KHUNG_HD_X + 3, printY + i, KHUNG_HD_RONG - 5);
-                
-                if (pCurr != NULL) {
-                    int idx = startIndex + i;
-                    string tenVT = "N/A", dvt = "N/A";
-                    NodeVatTu* nodeVT = TimKiemVatTu(root, pCurr->data.MAVT);
-                    if (nodeVT != NULL) { 
-                        tenVT = nodeVT->data.TENVT; 
-                        dvt = nodeVT->data.DVT; 
-                    }
-                    
-                    double tt = pCurr->data.soLuong * pCurr->data.donGia * (1.0 + pCurr->data.VAT / 100.0);
+        int actionY = footerTableY + 2;
+        drawBox(boxX, actionY, 93, 4, 3, false);
+        gotoxy(boxX + 3, actionY);
+        textcolor(14); cout << " THAO TAC HOA DON ";
 
-                    textcolor(11);
-                    cout << left << setw(4) << (idx + 1) << "| "
-                         << setw(8) << pCurr->data.MAVT << "| "
-                         << setw(22) << tenVT << "| "
-                         << setw(6) << dvt << "| "
-                         << setw(5) << pCurr->data.soLuong << "| "
-                         << setw(11) << (long long)pCurr->data.donGia << "| "
-                         << setw(6) << (to_string((int)pCurr->data.VAT) + "%") << "| "
-                         << (long long)tt;
+        string tenNut[4] = {
+            "[+] Them Vat Tu Vao Phieu",
+            "[-] Xoa Vat Tu Khoi Phieu",
+            "[V] CHOT LUU HOA DON",
+            "[X] HUY BO HOA DON"
+        };
+        int nutX[4] = { boxX + 4, boxX + 48, boxX + 4, boxX + 48 };
+        int nutY[4] = { actionY + 1, actionY + 1, actionY + 2, actionY + 2 };
 
-                    pCurr = pCurr->next;
+        auto VeCacNutThaoTac = [&]() {
+            for (int i = 0; i < 4; i++) {
+                gotoxy(nutX[i], nutY[i]);
+                if (i == menuSelected) {
+                    textcolor(31);
+                    cout << " > " << left << setw(34) << tenNut[i];
+                } else {
+                    int mau = (i == 0 ? 10 : (i == 1 ? 14 : (i == 2 ? 11 : 12)));
+                    textcolor(15); cout << "   ";
+                    textcolor(mau); cout << left << setw(34) << tenNut[i];
                 }
             }
-
-            textcolor(14);
-            gotoxy(KHUNG_HD_X + 75, KHUNG_HD_Y + 14);
-            clearLine(KHUNG_HD_X + 75, KHUNG_HD_Y + 14, 20);
-            cout << "[Trang " << currentPage << "/" << totalPages << "]";
+            textcolor(15);
         };
 
-        VeTrangItems();
+        VeCacNutThaoTac();
+        InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Mui ten: Chon thao tac / Chuyen trang | ENTER: Thuc hien");
 
-        gotoxy(KHUNG_HD_X + 2, KHUNG_HD_Y + 13);
-        textcolor(11);
-        cout << "=============================================================================================";
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 14);
-        textcolor(10);
-        cout << "TONG CONG TAM TINH: " << (long long)tongTien << " VND";
-        
-        string items[4] = {
-            "1. Them Vat Tu Vao Hoa Don (Mo Bang Chon)",
-            "2. Xoa Chi Tiet Vat Tu Trong Hoa Don",
-            "3. CHOT LUU HOA DON XUONG HE THONG",
-            "4. HUY LAP HOA DON (XOA DU LIEU TAM)"
-        };
-
-        // In menu lua chon chuc nang lap hoa don
-        auto VeMenu = [&]() {
-            for (int i = 0; i < 4; i++) {
-                gotoxy(KHUNG_HD_X + 5, KHUNG_HD_Y + 16 + i);
-                string text = (i == menuSelected ? "=> " : "   ") + items[i];
-                while (text.length() < 60) text += " ";
-                if (i == menuSelected) { textcolor(31); cout << text; }
-                else { textcolor(11); cout << text; }
-                textcolor(11);
-            }
-        };
-
-        VeMenu();
-
-        ShowConsoleCursor(false);
         int choice = 0;
-        
-        // Vong lap bat phim trong menu thao tac hoa don
         while (true) {
-            char key = _getch();
-            if (key == -32 || key == 224) {
+            int key = _getch();
+            if (key == -32 || key == 224 || key == 0) {
                 key = _getch();
-                if (key == 72) { 
-                    menuSelected = (menuSelected - 1 + 4) % 4;
-                    VeMenu();
-                } else if (key == 80) { 
-                    menuSelected = (menuSelected + 1) % 4;
-                    VeMenu();
-                } else if (key == 75) { 
-                    if (currentPage > 1) { currentPage--; VeTrangItems(); }
-                } else if (key == 77) { 
-                    if (currentPage < totalPages) { currentPage++; VeTrangItems(); }
+                if (key == 72 || key == 80) {
+                    menuSelected = (menuSelected + 2) % 4;
+                    VeCacNutThaoTac();
+                } else if (key == 75) {
+                    if (menuSelected % 2 == 1) { menuSelected--; VeCacNutThaoTac(); }
+                    else if (currentPage > 1) {
+                        currentPage--;
+                        DoDuLieuBangChiTietHD(boxX, tableY, pageSize, hdTam.dscthd, root, currentPage);
+                        gotoxy(boxX + 78, footerTableY); textcolor(14);
+                        cout << "[Trang " << currentPage << "/" << totalPages << "]";
+                    }
+                } else if (key == 77) {
+                    if (menuSelected % 2 == 0) { menuSelected++; VeCacNutThaoTac(); }
+                    else if (currentPage < totalPages) {
+                        currentPage++;
+                        DoDuLieuBangChiTietHD(boxX, tableY, pageSize, hdTam.dscthd, root, currentPage);
+                        gotoxy(boxX + 78, footerTableY); textcolor(14);
+                        cout << "[Trang " << currentPage << "/" << totalPages << "]";
+                    }
                 }
             } else if (key == 13) {
                 choice = menuSelected + 1;
@@ -808,186 +993,121 @@ void giaodienLapHoaDon(DanhSachNhanVien &dsNV, TreeVatTu &root) {
             }
         }
 
-        // CHUC NANG 1: THEM VAT TU VAO HOA DON TAM
-			if (choice == 1) {
-			    VatTu vtChon;
-			    if (ChonVatTuTuBang(root, vtChon)) {
-			        if (KiemTraTrungVatTuTrongGio(hdTam.dscthd, vtChon.MAVT)) {
-			            // Xoa sach dong huong dan cu o dong 22 va 23 truoc khi in thong bao loi
-			            clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 22, KHUNG_HD_RONG - 5);
-			            clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 23, KHUNG_HD_RONG - 5);
-			            
-			            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22);
-			            textcolor(12);
-			            cout << "=> LOI: Vat tu '" << vtChon.MAVT << "' da co trong hoa don!";
-			            
-			            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 23);
-			            textcolor(10);
-			            cout << "[Nhan phim bat ky de tiep tuc...]";
-			            textcolor(11);
-			            
-			            _getch();
-			            continue;
-			        }
+        // Xu ly 4 thao tac gio hang
+        if (choice == 1) { // Them vat tu
+            VatTu vtChon;
+            if (ChonVatTuTuBang(root, vtChon)) {
+                if (KiemTraTrungVatTuTrongGio(hdTam.dscthd, vtChon.MAVT)) {
+                    InThongBaoHD(boxX, OFFSET_Y + 21, "(!) Vat tu '" + vtChon.MAVT + "' da ton tai trong phieu! Hay xoa neu muon nhap lai.", 12);
+                    _getch();
+                    continue;
+                }
 
-                system("cls");
-                drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
+                VeKhungChucNangHD("NHAP CHI TIET VAT TU: " + vtChon.MAVT + " - " + vtChon.TENVT, 24);
+                drawBox(boxX, OFFSET_Y + 4, 93, 10, 3, false);
+                gotoxy(boxX + 3, OFFSET_Y + 4);
+                textcolor(14); cout << " THONG SO XUAT / NHAP ";
 
-                InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "THEM VAT TU: [" + vtChon.MAVT + " - " + vtChon.TENVT + "]", KHUNG_HD_RONG);
+                gotoxy(boxX + 4, OFFSET_Y + 6);
+                textcolor(11); cout << "Ton kho hien tai       : ";
+                textcolor(10); cout << vtChon.soLuongTon << " " << vtChon.DVT;
 
-                textcolor(11);
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-                cout << "So luong ton hien co: " << vtChon.soLuongTon << " " << vtChon.DVT;
+                int oThongSoX = boxX + 29; // Thang hang voi cac o o Buoc 1
+                gotoxy(boxX + 4, OFFSET_Y + 8);  textcolor(11); cout << "So luong               : ";
+                gotoxy(boxX + 4, OFFSET_Y + 10); textcolor(11); cout << "Don gia (VND)          : ";
+                gotoxy(boxX + 4, OFFSET_Y + 12); textcolor(11); cout << "Thue VAT (%)           : ";
 
-                textcolor(11);
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 7); cout << "Nhap So Luong: ";
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 9); cout << "Nhap Don Gia : ";
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 10); cout << "Nhap % VAT   : ";
+                InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Len/Xuong: Chuyen o | Backspace: Xoa | ENTER: Them vao phieu | ESC: Huy");
 
-                textcolor(11);
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 12);
-                cout << "[>>> ENTER DE THEM VAT TU VAO HOA DON | ESC DE HUY <<<]";
-
-                string strSL = "1", strDG = "100000", strVAT = "10";
+                string oChiTiet[3] = { "1", "100000", "10" };
+                const int subY[3]  = { OFFSET_Y + 8, OFFSET_Y + 10, OFFSET_Y + 12 };
+                const size_t maxKyTu[3] = { 8, 12, 5 };
                 int subField = 0;
 
                 while (true) {
-                    gotoxy(KHUNG_HD_X + 18, KHUNG_HD_Y + 7);  cout << left << setw(15) << strSL;
-                    gotoxy(KHUNG_HD_X + 18, KHUNG_HD_Y + 9);  cout << left << setw(15) << strDG;
-                    gotoxy(KHUNG_HD_X + 18, KHUNG_HD_Y + 10); cout << left << setw(15) << strVAT;
-
-                    if (subField == 3) {
-                        textcolor(31);
-                        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 12);
-                        cout << "[>>> ENTER DE THEM VAT TU VAO HOA DON | ESC DE HUY <<<]";
-                        textcolor(11);
-                    } else {
-                        textcolor(11);
-                        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 12);
-                        cout << "[>>> ENTER DE THEM VAT TU VAO HOA DON | ESC DE HUY <<<]";
+                    // Ve 3 o thong so cung do rong RONG_O_NHAP_DON (22) va to xanh phan chu da nhap
+                    for (int i = 0; i < 3; i++) {
+                        VeONhapCanGiua(oThongSoX, subY[i], RONG_O_NHAP_DON, oChiTiet[i], i == subField);
                     }
 
-                    ShowConsoleCursor(true);
-                    if (subField == 0) gotoxy(KHUNG_HD_X + 18 + strSL.length(), KHUNG_HD_Y + 7);
-                    else if (subField == 1) gotoxy(KHUNG_HD_X + 18 + strDG.length(), KHUNG_HD_Y + 9);
-                    else if (subField == 2) gotoxy(KHUNG_HD_X + 18 + strVAT.length(), KHUNG_HD_Y + 10);
-                    else if (subField == 3) gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 12);
-
-                    char k = _getch();
-                    if (k == 27) break; // ESC -> Huy them vat tu nay
-
-                    if (k == -32 || k == 224) {
-                        char subKey = _getch();
-                        if (subKey == 72) subField = (subField - 1 + 4) % 4;
-                        else if (subKey == 80) subField = (subField + 1) % 4;
+                    int k = _getch();
+                    if (k == 27) { ShowConsoleCursor(false); break; }
+                    if (k == -32 || k == 224 || k == 0) {
+                        k = _getch();
+                        if (k == 72) subField = (subField + 2) % 3;
+                        else if (k == 80) subField = (subField + 1) % 3;
                         continue;
                     }
-
-                    if (k == 8) { // Backspace
-                        if (subField == 0 && !strSL.empty()) strSL.pop_back();
-                        else if (subField == 1 && !strDG.empty()) strDG.pop_back();
-                        else if (subField == 2 && !strVAT.empty()) strVAT.pop_back();
+                    if (k == 8) {
+                        if (!oChiTiet[subField].empty()) oChiTiet[subField].pop_back();
                         continue;
                     }
-
-                    if (k == 13) {
-                        if (subField < 3) {
-                            subField++;
-                        } else {
-                            int sl = strSL.empty() ? 0 : stoi(strSL);
-                            double dg = strDG.empty() ? 0 : stod(strDG);
-                            double v = strVAT.empty() ? 0 : stod(strVAT);
-
-                            if (sl <= 0) {
-                                textcolor(12);
-                                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 14);
-                                cout << "=> LOI: So luong phai lon hon 0!";
-                                textcolor(11);
-                                _getch();
-                                clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 14, 75);
-                                subField = 0;
-                            } else if (hdTam.loai == 'X' && sl > vtChon.soLuongTon) {
-                                textcolor(12);
-                                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 14);
-                                cout << "=> LOI: Vuot qua ton kho (Hien co: " << vtChon.soLuongTon << ")!";
-                                textcolor(11);
-                                _getch();
-                                clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 14, 75);
-                                subField = 0;
-                            } else {
-                                ChiTietHoaDon ct;
-                                ct.MAVT = vtChon.MAVT;
-                                ct.soLuong = sl;
-                                ct.donGia = dg;
-                                ct.VAT = (float)v;
-
-                                ThemCTHD(hdTam.dscthd, ct);
-
-                                textcolor(10);
-                                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 14);
-                                cout << "=> DA THEM CHI TIET VAT TU VAO HOA DON!";
-                                textcolor(11);
-                                _getch();
-                                break;
-                            }
+                    if ((k >= '0' && k <= '9') || (subField > 0 && k == '.')) {
+                        if (oChiTiet[subField].length() < maxKyTu[subField]) {
+                            oChiTiet[subField] += (char)k;
                         }
                         continue;
                     }
+                    if (k == 13) {
+                        if (subField < 2) {
+                            subField++;
+                            continue;
+                        }
+                        int sl = oChiTiet[0].empty() ? 0 : stoi(oChiTiet[0]);
+                        double dg = oChiTiet[1].empty() ? 0 : stod(oChiTiet[1]);
+                        float vat = oChiTiet[2].empty() ? 0.0f : stof(oChiTiet[2]);
 
-                    if (subField == 0 && isdigit(static_cast<unsigned char>(k))) strSL += k;
-                    else if (subField == 1 && (isdigit(static_cast<unsigned char>(k)) || k == '.')) strDG += k;
-                    else if (subField == 2 && (isdigit(static_cast<unsigned char>(k)) || k == '.')) strVAT += k;
+                        if (sl <= 0) {
+                            InThongBaoHD(boxX + 4, OFFSET_Y + 15, "(!) So luong phai lon hon 0!", 12);
+                            subField = 0;
+                            continue;
+                        }
+                        if (hdTam.loai == 'X' && sl > vtChon.soLuongTon) {
+                            InThongBaoHD(boxX + 4, OFFSET_Y + 15, "(!) Khong du ton kho de xuat (Hien con: " + to_string(vtChon.soLuongTon) + ")!", 12);
+                            subField = 0;
+                            continue;
+                        }
+
+                        ChiTietHoaDon ct;
+                        ct.MAVT = vtChon.MAVT;
+                        ct.soLuong = sl;
+                        ct.donGia = dg;
+                        ct.VAT = vat;
+                        ThemCTHD(hdTam.dscthd, ct);
+
+                        ShowConsoleCursor(false);
+                        break;
+                    }
                 }
             }
-        }
-        // CHUC NANG 2: XOA CHI TIET VAT TU KHOI HOA DON TAM
-        else if (choice == 2) {
+        } else if (choice == 2) { // Xoa vat tu
             if (hdTam.dscthd == NULL) {
-                textcolor(12);
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22); cout << "=> LOI: Danh sach chi tiet hien dang rong!";
-                textcolor(11);
+                InThongBaoHD(boxX, OFFSET_Y + 21, "(!) Phieu hien dang rong, khong co vat tu de xoa!", 12);
                 _getch();
                 continue;
             }
-            clearLine(KHUNG_HD_X + 3, KHUNG_HD_Y + 22, 80);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22); textcolor(11);
-            cout << "Nhap Ma Vat Tu can xoa: ";
+            clearLine(boxX, OFFSET_Y + 21, 90);
+            gotoxy(boxX, OFFSET_Y + 21);
+            textcolor(14); cout << "Nhap Ma VT can xoa     : ";
             string maXoa = "";
-            if (NhapInputESC(KHUNG_HD_X + 27, KHUNG_HD_Y + 22, maXoa, 10, true)) {
+            if (NhapChuoiCanGiua(boxX + 25, OFFSET_Y + 21, RONG_O_NHAP_DON, maXoa, 10, true)) {
                 XoaCTHDTrongDSTam(hdTam.dscthd, maXoa);
             }
-        }
-        // CHUC NANG 3: CHOT LUU HOA DON
-        else if (choice == 3) {
+        } else if (choice == 3) { // Chot luu hoa don
             if (hdTam.dscthd == NULL) {
-                textcolor(12);
-                gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22); cout << "=> LOI: Hoa don rong! Khong the luu.";
-                textcolor(11);
+                InThongBaoHD(boxX, OFFSET_Y + 21, "(!) Khong the luu hoa don rong! Vui long them it nhat 1 vat tu.", 12);
                 _getch();
                 continue;
             }
-            break; 
-        }
-        // CHUC NANG 4: HUY LAP HOA DON
-        else if (choice == 4) {
+            break;
+        } else if (choice == 4) { // Huy bo
             GiaiPhongDSCTHD(hdTam.dscthd);
             return;
         }
     }
 
-    // BUOC 5: CAP NHAT CAY VAT TU, CHEN HOA DON VAO NHAN VIEN VA GHI FILE
-    NodeCTHD* pCT = hdTam.dscthd;
-    while (pCT != NULL) {
-        NodeVatTu* nodeVT = TimKiemVatTu(root, pCT->data.MAVT);
-        if (nodeVT != NULL) {
-            if (hdTam.loai == 'N') {
-                nodeVT->data.soLuongTon += pCT->data.soLuong;
-            } else if (hdTam.loai == 'X') {
-                nodeVT->data.soLuongTon -= pCT->data.soLuong;
-            }
-        }
-        pCT = pCT->next;
-    }
+    // Cap nhat ton kho, them hoa don vao nhan vien va luu xuong file
+    CapNhatTonKhoSauKhiLuuHD(root, hdTam);
 
     NodeHoaDon* pHD = new NodeHoaDon();
     pHD->data = hdTam;
@@ -997,190 +1117,140 @@ void giaodienLapHoaDon(DanhSachNhanVien &dsNV, TreeVatTu &root) {
     LuuFileHoaDon(dsNV);
     LuuFileVatTu(root);
 
-    system("cls");
-    drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
-    InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "THONG BAO HE THONG", KHUNG_HD_RONG);
-    textcolor(10);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 6);
-    cout << "=> LAP HOA DON " << hdTam.soHD << " THANH CONG VA DA LUU HE THONG!";
-    textcolor(11);
-    gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 8);
-    cout << "Nhan phim bat ky de ve Menu...";
+    VeKhungChucNangHD("HOAN TAT LAP HOA DON", 24);
+    drawBox(offsetX + 18, OFFSET_Y + 8, 62, 7, 10, false);
+    gotoxy(offsetX + 24, OFFSET_Y + 10);
+    textcolor(10); cout << "DA LUU HOA DON [" << hdTam.soHD << "] THANH CONG!";
+    gotoxy(offsetX + 24, OFFSET_Y + 12);
+    textcolor(7);  cout << "Du lieu ton kho va hoa don da duoc cap nhat.";
+    InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Nhan phim bat ky de quay ve Menu chinh...");
     _getch();
 }
 
 // =========================================================
-// PHAN 5: GIAO DIEN CAU F - IN CHI TIET 1 HOA DON
+// PHAN 5: MODULE GIAO DIEN CAU F - IN CHI TIET 1 HOA DON
 // =========================================================
 
 void giaodienInHoaDon(DanhSachNhanVien dsNV, TreeVatTu root) {
-    NodeHoaDon* hdTimThay = NULL;
-    NhanVien* nvLap = NULL;
+    int offsetX = getDynamicOffsetX();
+    int boxX = offsetX + 3;
 
     while (true) {
-        system("cls");
-        drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
+        NodeHoaDon* hdTimThay = NULL;
+        NhanVien* nvLap = NULL;
 
-        InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, "TRA CUU & IN CHI TIET HOA DON", KHUNG_HD_RONG);
+        // Buoc 1: Nhap so hoa don can tra cuu (con tro o giua o vuong)
+        while (true) {
+            VeKhungChucNangHD("TRA CUU & IN CHI TIET HOA DON", 24);
+            drawBox(boxX, OFFSET_Y + 4, 93, 5, 3, false);
+            gotoxy(boxX + 3, OFFSET_Y + 4);
+            textcolor(14); cout << " TIM KIEM HOA DON ";
 
-        textcolor(10);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 24);
-        cout << "[Luu y: Nhan ESC khi o nhap rong de thoat ve Menu]";
+            int oTimKiemX = boxX + 29;
+            gotoxy(boxX + 4, OFFSET_Y + 6);
+            textcolor(11); cout << "Nhap So Hoa Don        : ";
 
-        textcolor(11);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-        cout << "Nhap So Hoa Don can in: ";
-        
-        string soHD = "";
-        if (!NhapInputESC(KHUNG_HD_X + 27, KHUNG_HD_Y + 5, soHD, 20, true)) return; 
+            InThanhHuongDanHD(boxX, OFFSET_Y + 22, "ENTER: Tim kiem hoa don | ESC: Quay ve Menu chinh");
 
-        if (soHD.empty()) return; 
+            string soHD = "";
+            if (!NhapChuoiCanGiua(oTimKiemX, OFFSET_Y + 6, RONG_O_NHAP_DON, soHD, 20, true)) return;
+            if (soHD.empty()) return;
 
-        hdTimThay = NULL;
-        nvLap = NULL;
-
-        // Tim kiem hoa don trong danh sach nhan vien
-        for (int i = 0; i < dsNV.soLuong; i++) {
-            NodeHoaDon* pHD = dsNV.ds[i]->dshd;
-            while (pHD != NULL) {
-                if (pHD->data.soHD == soHD) {
-                    hdTimThay = pHD;
-                    nvLap = dsNV.ds[i];
-                    break;
+            for (int i = 0; i < dsNV.soLuong; i++) {
+                NodeHoaDon* pHD = dsNV.ds[i]->dshd;
+                while (pHD != NULL) {
+                    if (pHD->data.soHD == soHD) {
+                        hdTimThay = pHD;
+                        nvLap = dsNV.ds[i];
+                        break;
+                    }
+                    pHD = pHD->next;
                 }
-                pHD = pHD->next;
-            }
-            if (hdTimThay != NULL) break;
-        }
-
-        if (hdTimThay == NULL) {
-            textcolor(12);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 7);
-            cout << "=> LOI: So HD '" << soHD << "' khong ton tai trong he thong!";
-            textcolor(11);
-            gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 9);
-            cout << "Nhan phim bat ky de nhap lai (hoac ESC de thoat ve Menu)...";
-            ShowConsoleCursor(false);
-            char k = _getch();
-            if (k == 27) return;
-        } else {
-            break; 
-        }
-    }
-
-    // Tinh tong tri gia va tong so chi tiet hoa don
-    int totalItems = 0;
-    double tongTriGia = 0;
-    NodeCTHD* pCT = hdTimThay->data.dscthd;
-
-    while (pCT != NULL) {
-        totalItems++;
-        double thanhTien = pCT->data.soLuong * pCT->data.donGia * (1.0 + pCT->data.VAT / 100.0);
-        tongTriGia += thanhTien;
-        pCT = pCT->next;
-    }
-
-    int pageSize = 9; 
-    int totalPages = max(1, (totalItems + pageSize - 1) / pageSize);
-    int currentPage = 1;
-
-    ShowConsoleCursor(false);
-
-    // Vong lap in va phan trang chi tiet hoa don
-    while (true) {
-        system("cls");
-        drawBox(KHUNG_HD_X, KHUNG_HD_Y, KHUNG_HD_RONG, KHUNG_HD_CAO, 14);
-
-        string titleHD = "HOA DON " + string(hdTimThay->data.loai == 'N' ? "NHAP KHO" : "XUAT KHO") + " [" + hdTimThay->data.soHD + "]";
-        InIntroBanner(KHUNG_HD_X, KHUNG_HD_Y, titleHD, KHUNG_HD_RONG);
-
-        textcolor(11);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 5);
-        cout << "So Hoa Don : " << left << setw(15) << hdTimThay->data.soHD;
-        gotoxy(KHUNG_HD_X + 45, KHUNG_HD_Y + 5);
-        cout << "Ngay Lap : " << hdTimThay->data.ngayLap.ngay << "/"
-                             << hdTimThay->data.ngayLap.thang << "/"
-                             << hdTimThay->data.ngayLap.nam;
-
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 6);
-        cout << "Nhan Vien  : " << nvLap->HO << " " << nvLap->TEN 
-             << " (Ma NV: " << nvLap->MANV << ")";
-
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 8);
-        cout << left << setw(4) << "STT" << "| "
-             << setw(8) << "Ma VT" << "| "
-             << setw(22) << "Ten Vat Tu" << "| "
-             << setw(6) << "DVT" << "| "
-             << setw(5) << "SL" << "| "
-             << setw(11) << "Don Gia" << "| "
-             << setw(6) << "VAT" << "| "
-             << "Thanh Tien";
-
-        gotoxy(KHUNG_HD_X + 2, KHUNG_HD_Y + 9);
-        cout << "---------------------------------------------------------------------------------------------";
-
-        int startIndex = (currentPage - 1) * pageSize;
-        int printY = KHUNG_HD_Y + 10;
-
-        NodeCTHD* pCurr = hdTimThay->data.dscthd;
-        for (int k = 0; k < startIndex && pCurr != NULL; k++) {
-            pCurr = pCurr->next;
-        }
-
-        cout << fixed << setprecision(0);
-
-        int countInPage = 0;
-        while (pCurr != NULL && countInPage < pageSize) {
-            int idx = startIndex + countInPage;
-            string tenVT = "N/A", dvt = "N/A";
-
-            NodeVatTu* nodeVT = TimKiemVatTu(root, pCurr->data.MAVT);
-            if (nodeVT != NULL) {
-                tenVT = nodeVT->data.TENVT;
-                dvt = nodeVT->data.DVT;
+                if (hdTimThay != NULL) break;
             }
 
-            double thanhTien = pCurr->data.soLuong * pCurr->data.donGia * (1.0 + pCurr->data.VAT / 100.0);
-
-            gotoxy(KHUNG_HD_X + 3, printY);
-            textcolor(11);
-            cout << left << setw(4) << (idx + 1) << "| "
-                 << setw(8) << pCurr->data.MAVT << "| "
-                 << setw(22) << tenVT << "| "
-                 << setw(6) << dvt << "| "
-                 << setw(5) << pCurr->data.soLuong << "| "
-                 << setw(11) << (long long)pCurr->data.donGia << "| "
-                 << setw(6) << (to_string((int)pCurr->data.VAT) + "%") << "| "
-                 << (long long)thanhTien;
-
-            printY++;
-            countInPage++;
-            pCurr = pCurr->next;
-        }
-
-        gotoxy(KHUNG_HD_X + 2, KHUNG_HD_Y + 21);
-        textcolor(11);
-        cout << "=============================================================================================";
-
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 22);
-        textcolor(10);
-        cout << "TONG TRI GIA HOA DON: " << (long long)tongTriGia << " VND";
-
-        textcolor(14);
-        gotoxy(KHUNG_HD_X + 3, KHUNG_HD_Y + 24);
-        cout << "[<- Trai / Phai ->]: Trang " << currentPage << "/" << totalPages 
-             << "  |  [Enter/ESC]: Quay Lai Menu";
-
-        char key = _getch();
-        if (key == -32 || key == 224) {
-            char navKey = _getch();
-            if (navKey == 75) { // Mui ten Trai -> Lui trang
-                if (currentPage > 1) currentPage--;
-            } else if (navKey == 77) { // Mui ten Phai -> Tien trang
-                if (currentPage < totalPages) currentPage++;
+            if (hdTimThay == NULL) {
+                InThongBaoHD(boxX + 4, OFFSET_Y + 11, "(!) Khong tim thay hoa don mang ma '" + soHD + "' trong he thong!", 12);
+                gotoxy(boxX + 4, OFFSET_Y + 12);
+                textcolor(7); cout << "Nhan phim bat ky de nhap lai hoac nhan ESC de thoat...";
+                int k = _getch();
+                if (k == 27) return;
+            } else {
+                break;
             }
-        } else if (key == 13 || key == 27) { // Enter hoac ESC -> Quay ve Menu
-            break;
         }
+
+        // Buoc 2: Tinh tong tri gia hoa don va hien thi phieu chi tiet
+        int totalItems = 0;
+        double tongTriGia = 0;
+        TinhTongHoaDon(hdTimThay->data.dscthd, totalItems, tongTriGia);
+
+        const int pageSize = 8;
+        int totalPages = max(1, (totalItems + pageSize - 1) / pageSize);
+        int currentPage = 1;
+        int tableY = OFFSET_Y + 8;
+        bool traCuuTiep = false;
+
+        ShowConsoleCursor(false);
+
+        while (true) {
+            string loaiText = (hdTimThay->data.loai == 'N' ? "PHIEU NHAP KHO" : "PHIEU XUAT KHO");
+            VeKhungChucNangHD("CHI TIET " + loaiText + " [" + hdTimThay->data.soHD + "]", 24);
+
+            // Khung thong tin chung bo tri 2 cot x 2 dong thoang mat, tham my
+            drawBox(boxX, OFFSET_Y + 3, 93, 5, 3, false);
+            gotoxy(boxX + 3, OFFSET_Y + 3);
+            textcolor(14); cout << " THONG TIN CHUNG HOA DON ";
+
+            // Dong 1: So Hoa Don (trai) & Ngay Lap (phai)
+            gotoxy(boxX + 4, OFFSET_Y + 4);
+            textcolor(11); cout << "So Hoa Don   : ";
+            textcolor(14); cout << hdTimThay->data.soHD;
+
+            gotoxy(boxX + 52, OFFSET_Y + 4);
+            textcolor(11); cout << "Ngay Lap     : ";
+            textcolor(15); cout << DinhDangNgayHD(hdTimThay->data.ngayLap.ngay,
+                                                hdTimThay->data.ngayLap.thang,
+                                                hdTimThay->data.ngayLap.nam);
+
+            // Dong 2 (cach 1 dong cho thoang): Nhan Vien (trai) & Loai Phieu (phai)
+            gotoxy(boxX + 4, OFFSET_Y + 6);
+            textcolor(11); cout << "Nhan Vien    : ";
+            textcolor(15); cout << nvLap->HO << " " << nvLap->TEN << " (" << nvLap->MANV << ")";
+
+            gotoxy(boxX + 52, OFFSET_Y + 6);
+            textcolor(11); cout << "Loai Phieu   : ";
+            textcolor(hdTimThay->data.loai == 'N' ? 10 : 13);
+            cout << (hdTimThay->data.loai == 'N' ? "NHAP KHO (N)" : "XUAT KHO (X)");
+
+            // Ve bang 8 cot chi tiet hoa don
+            VeKhungBangChiTietHD(boxX, tableY, pageSize);
+            DoDuLieuBangChiTietHD(boxX, tableY, pageSize, hdTimThay->data.dscthd, root, currentPage);
+
+            // Tong tri gia va chi so trang
+            int footerY = tableY + 3 + pageSize + 1;
+            gotoxy(boxX, footerY);
+            textcolor(11); cout << "TONG TRI GIA HOA DON: ";
+            textcolor(10); cout << DinhDangTienHD(tongTriGia) << " VND";
+
+            gotoxy(boxX + 78, footerY);
+            textcolor(14); cout << "[Trang " << currentPage << "/" << totalPages << "]";
+
+            InThanhHuongDanHD(boxX, OFFSET_Y + 22, "Trai/Phai: Chuyen trang | ENTER: Tra cuu HD khac | ESC: Ve Menu");
+
+            int key = _getch();
+            if (key == -32 || key == 224 || key == 0) {
+                int navKey = _getch();
+                if (navKey == 75 && currentPage > 1) currentPage--;
+                else if (navKey == 77 && currentPage < totalPages) currentPage++;
+            } else if (key == 13) {
+                traCuuTiep = true;
+                break;
+            } else if (key == 27) {
+                return;
+            }
+        }
+
+        if (!traCuuTiep) break;
     }
 }
